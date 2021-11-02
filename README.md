@@ -1,70 +1,45 @@
-# rmg README
+# What is React Module Generator (RMG)
 
-This is the README for your extension "rmg". After writing up a brief description, we recommend including the following sections.
+RMG was created when I got bored of creating a folder, creating a barrel file and then creating a component file aka a module, so this is a kind of file snippet.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
-
-For example if there is an image subfolder under your extension project workspace:
-
-\!\[feature X\]\(images/feature-x.png\)
-
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
-
-## Requirements
-
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Create modules, what is a module? A module is a self contained component that exposes it's components via a barrel (index) file, which makes it clear which parts of that folder are ready for consumption, think of everything in the barrel file as a public resource!
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+- `rmg.typescript`: Enable/disable TypeScript file generation.
+- `rmg.fileExtensions`: Enable/disable file extension in barrel files export.
+- `rmg.defaultImports`: Any and all imports needed in your module, if you want to disable this set it to an empty array.
+- `rmg.defaultModuleName`: The default name of your new module.
+- `rmg.exportType`: What type of export you want to use https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export.
+- `rmg.rootDirectory`: The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Nothing yet 🤞
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
+Initial release of RMG, features added:
 
-Initial release of ...
+- cmd | crtl + p, RMG: Create, which will ask you your new modules name and which directory to place it.
+- explorer context menu, RMG: Create, which will ask you your new modules name and will place it in the directory of the file or directory you selected.
+- explorer context menu on an existing module, RMG: Add, which will ask you your new modules name and add it to the existing module.
 
-### 1.0.1
+---
 
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-## Following extension guidelines
+## Contribution
 
 Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+- [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
 
-## Working with Markdown
+## Setup
 
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+- `yarn` | `npm` to install all the things.
+- `f5` to compile and run the app in a new instance of VSCode
 
 **Enjoy!**

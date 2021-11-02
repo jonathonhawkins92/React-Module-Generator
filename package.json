@@ -23,13 +23,13 @@
 				"rmg.typescript": {
 					"type": "boolean",
 					"default": false,
-					"description": "Generate TypeScript files.",
+					"description": "Enable/disable TypeScript file generation.",
 					"scope": "resource"
 				},
 				"rmg.fileExtensions": {
 					"type": "boolean",
 					"default": true,
-					"description": "Include file extension in barrel files export.",
+					"description": "Enable/disable file extension in barrel files export.",
 					"scope": "resource"
 				},
 				"rmg.defaultImports": {
@@ -43,7 +43,7 @@
 				"rmg.defaultModuleName": {
 					"type": "string",
 					"default": "ModuleName",
-					"description": "The name of your new module.",
+					"description": "The default name of your new module.",
 					"scope": "resource"
 				},
 				"rmg.exportType": {
@@ -60,7 +60,7 @@
 				"rmg.rootDirectory": {
 					"type": "string",
 					"default": "",
-					"description": "The location that we will create your new module in, without this we will attempt to fallback to the workspace root.",
+					"description": "The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.",
 					"scope": "resource"
 				}
 			}
