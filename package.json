@@ -1,0 +1,125 @@
+{
+	"name": "rmg",
+	"displayName": "react-module-generator",
+	"description": "generate react modules 🤯",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.61.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onCommand:rmg.create",
+		"onCommand:rmg.explorerCreate",
+		"onCommand:rmg.explorerAdd"
+	],
+	"main": "./dist/extension.js",
+	"contributes": {
+		"configuration": {
+			"title": "React Module Generator Configuration",
+			"type": "object",
+			"properties": {
+				"rmg.typescript": {
+					"type": "boolean",
+					"default": false,
+					"description": "Generate TypeScript files.",
+					"scope": "resource"
+				},
+				"rmg.fileExtensions": {
+					"type": "boolean",
+					"default": true,
+					"description": "Include file extension in barrel files export.",
+					"scope": "resource"
+				},
+				"rmg.defaultImports": {
+					"type": "array",
+					"default": [
+						"import * as React from 'react';"
+					],
+					"description": "Any and all imports needed in your module, if you want to disable this set it to an empty array.",
+					"scope": "resource"
+				},
+				"rmg.defaultModuleName": {
+					"type": "string",
+					"default": "ModuleName",
+					"description": "The name of your new module.",
+					"scope": "resource"
+				},
+				"rmg.exportType": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default"
+					],
+					"default": "all",
+					"description": "What type of export you want to use https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export.",
+					"scope": "resource"
+				},
+				"rmg.rootDirectory": {
+					"type": "string",
+					"default": "",
+					"description": "The location that we will create your new module in, without this we will attempt to fallback to the workspace root.",
+					"scope": "resource"
+				}
+			}
+		},
+		"commands": [
+			{
+				"command": "rmg.create",
+				"title": "RMG: Create"
+			},
+			{
+				"command": "rmg.explorerCreate",
+				"title": "RMG: Create"
+			},
+			{
+				"command": "rmg.explorerAdd",
+				"title": "RMG: Add"
+			}
+		],
+		"menus": {
+			"explorer/context": [
+				{
+					"command": "rmg.explorerCreate"
+				},
+				{
+					"command": "rmg.explorerAdd"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run package",
+		"debug": "node ./node_modules/webpack/bin/webpack",
+		"compile": "webpack",
+		"watch": "webpack --watch",
+		"package": "webpack --mode production --devtool hidden-source-map",
+		"compile-tests": "tsc -p . --outDir out",
+		"watch-tests": "tsc -p . -w --outDir out",
+		"pretest": "npm run compile-tests && npm run compile && npm run lint",
+		"lint": "eslint src --ext ts",
+		"test": "node ./out/test/runTest.js",
+		"search": "ts-node ./src/aho-corasick.ts"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.4",
+		"@types/mocha": "^9.0.0",
+		"@types/node": "14.x",
+		"@types/vscode": "^1.61.0",
+		"@typescript-eslint/eslint-plugin": "^5.1.0",
+		"@typescript-eslint/parser": "^5.1.0",
+		"@vscode/test-electron": "^1.6.2",
+		"eslint": "^8.1.0",
+		"glob": "^7.1.7",
+		"mocha": "^9.1.3",
+		"ts-loader": "^9.2.5",
+		"typescript": "^4.4.4",
+		"webpack": "^5.52.1",
+		"webpack-cli": "^4.8.0"
+	},
+	"dependencies": {
+		"ts-node": "^10.4.0"
+	}
+}
