@@ -4,8 +4,8 @@
 	"description": "generate react modules 🤯",
 	"icon": "images/logo.png",
 	"galleryBanner": {
-		"color": "#eeeeee",
-		"theme": "light"
+		"color": "#ff69b4",
+		"theme": "dark"
 	},
 	"bugs": {
 		"url": "https://github.com/jonathonhawkins92/React-Module-Generator/issues"
