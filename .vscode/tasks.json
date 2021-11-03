@@ -6,6 +6,8 @@
     {
       "type": "npm",
       "script": "debug",
+      "problemMatcher": ["$ts-webpack-watch", "$tslint-webpack-watch"],
+      "isBackground": true,
       "presentation": {
         "reveal": "never",
         "group": "watchers"
