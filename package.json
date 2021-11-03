@@ -2,6 +2,20 @@
 	"name": "rmg",
 	"displayName": "react-module-generator",
 	"description": "generate react modules 🤯",
+	"icon": "images/logo.png",
+	"galleryBanner": {
+		"color": "#eeeeee",
+		"theme": "light"
+	},
+	"bugs": {
+		"url": "https://github.com/jonathonhawkins92/React-Module-Generator/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jonathonhawkins92/React-Module-Generator"
+	},
+	"license": "MIT",
+	"publisher": "goblin",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.61.0"
