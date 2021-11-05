@@ -40,7 +40,11 @@ class Templates
 	}
 
 	public componentImports({ imports }: ImportOptions) {
-		return imports.join("\n") + `\n\n`;
+		const result = imports.join("\n").trim();
+		if (!result) {
+			return "";
+		}
+		return `${result}\n\n`;
 	}
 
 	public componentAll(options: Options) {
