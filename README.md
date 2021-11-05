@@ -34,15 +34,17 @@ Initial release of RMG, features added:
 
 Minor bump due to removal of settings, in future this will be a Major bump but until we hit `1.0.0` breaking changes are more likely.
 
--   defaultModuleName removed
--   defaultImports in favour of extendable template methods
--   unification of generic and explorer commands
--   auto open created file
--   new includeStyle setting
--   new includeTranslation setting
+-   removed rmg.createExplorer in favour of rmg.create
+-   removed rmg.addExplorer in favour of rmg.add
+-   removed defaultModuleName
+-   removed defaultImports in favour of extendable template methods
+-   added auto opening created file
+    -   might add to settings
+-   added includeStyle setting
+-   added includeTranslation setting
 -   added run time setting checkboxes
 -   added folder picker for use outside of explorer
-    -       I might always show this in future if requested or if it annoys me!
+    -   I might always show this in future if requested or if it annoys me!
 
 ---
 
