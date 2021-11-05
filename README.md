@@ -30,6 +30,20 @@ Initial release of RMG, features added:
 -   explorer context menu, RMG: Create, which will ask you your new modules name and will place it in the directory of the file or directory you selected.
 -   explorer context menu on an existing module, RMG: Add, which will ask you your new modules name and add it to the existing module.
 
+### 0.1.0
+
+Minor bump due to removal of settings, in future this will be a Major bump but until we hit `1.0.0` breaking changes are more likely.
+
+-   defaultModuleName removed
+-   defaultImports in favour of extendable template methods
+-   unification of generic and explorer commands
+-   auto open created file
+-   new includeStyle setting
+-   new includeTranslation setting
+-   added run time setting checkboxes
+-   added folder picker for use outside of explorer
+    -       I might always show this in future if requested or if it annoys me!
+
 ---
 
 ## Contribution
