@@ -53,6 +53,122 @@ export default class FileController {
 		return this;
 	}
 
+	public async add(targetDir?: string) {
+		if (!targetDir) {
+			targetDir = await this.getDir();
+		}
+		const root = await this.getRoot(targetDir);
+		const { name, settings } = await this.getUserSettings();
+		const { extension, reactExtension } = this.getExtension(
+			settings.typescript
+		);
+
+		const componentName = this.normalizeComponentName(name);
+		const componentFile = `${componentName}.${reactExtension}`;
+		const componentFilename = settings.fileExtensions
+			? componentFile
+			: componentName;
+		const componentPath = path.join(root, componentFile);
+
+		const barrelFile = `index.${extension}`;
+		const barrelPath = path.join(root, barrelFile);
+		const isBarrel = await fs.stat(barrelPath);
+		if (!isBarrel.isFile()) {
+			throw new Error("Unable to find barrel.");
+		}
+
+		let exportType = this.settings.exportType;
+		if (this.settings.exportType === "default") {
+			exportType = "named";
+		}
+		const barrelTemplate = await this.generateBarrelTemplate(
+			componentName,
+			componentFilename,
+			{
+				exportType,
+			}
+		);
+
+		await fs.writeFile(barrelPath, barrelTemplate, { flag: "a+" });
+
+		const componentTemplate = await this.generateComponentTemplate(
+			componentName,
+			componentFilename,
+			{
+				exportType,
+			}
+		);
+		await fs.writeFile(componentPath, componentTemplate);
+
+		const doc = await vscode.workspace.openTextDocument(componentPath);
+		vscode.window.showTextDocument(doc);
+	}
+
+	public async create(targetDir?: string) {
+		if (!targetDir) {
+			targetDir = await this.getDir();
+		}
+		const root = await this.getRoot(targetDir);
+		const { name, settings } = await this.getUserSettings();
+		const { extension, reactExtension } = this.getExtension(
+			settings.typescript
+		);
+
+		const dirName = this.normalizeDirName(name);
+		const dirPath = path.join(root, dirName);
+
+		const componentName = this.normalizeComponentName(name);
+		const componentFile = `${componentName}.${reactExtension}`;
+		const componentFilename = settings.fileExtensions
+			? componentFile
+			: componentName;
+		const componentPath = path.join(dirPath, componentFile);
+		const componentTemplate = await this.generateComponentTemplate(
+			componentName,
+			componentFilename,
+			{
+				exportType: this.settings.exportType,
+			}
+		);
+
+		const barrelFile = `index.${extension}`;
+		const barrelPath = path.join(dirPath, barrelFile);
+		const barrelTemplate = await this.generateBarrelTemplate(
+			componentName,
+			componentFilename,
+			{
+				exportType: this.settings.exportType,
+			}
+		);
+
+		await fs.mkdir(dirPath);
+		await fs.writeFile(barrelPath, barrelTemplate);
+		await fs.writeFile(componentPath, componentTemplate);
+
+		const doc = await vscode.workspace.openTextDocument(componentPath);
+		vscode.window.showTextDocument(doc);
+	}
+
+	public async explorerCreate(filePath: string) {
+		const normalizedFilePath = this.tidyDir(filePath);
+		const stats = await fs.lstat(normalizedFilePath);
+		if (stats.isDirectory()) {
+			this.create(normalizedFilePath);
+		} else {
+			this.create(path.dirname(normalizedFilePath));
+		}
+	}
+
+	public async explorerAdd(filePath: string) {
+		const normalizedFilePath = this.tidyDir(filePath);
+		const stats = await fs.lstat(normalizedFilePath);
+		if (stats.isDirectory()) {
+			this.add(normalizedFilePath);
+		} else {
+			this.add(path.dirname(normalizedFilePath));
+		}
+	}
+
 	private async getUserSettings() {
 		console.log(this.settings);
 		console.log(this.settings.includeStyle);
@@ -199,122 +315,6 @@ export default class FileController {
 				extension: "js",
 				reactExtension: "jsx",
 			};
-		}
-	}
-
-	public async add(targetDir?: string) {
-		if (!targetDir) {
-			targetDir = await this.getDir();
-		}
-		const root = await this.getRoot(targetDir);
-		const { name, settings } = await this.getUserSettings();
-		const { extension, reactExtension } = this.getExtension(
-			settings.typescript
-		);
-
-		const componentName = this.normalizeComponentName(name);
-		const componentFile = `${componentName}.${reactExtension}`;
-		const componentFilename = settings.fileExtensions
-			? componentFile
-			: componentName;
-		const componentPath = path.join(root, componentFile);
-
-		const barrelFile = `index.${extension}`;
-		const barrelPath = path.join(root, barrelFile);
-		const isBarrel = await fs.stat(barrelPath);
-		if (!isBarrel.isFile()) {
-			throw new Error("Unable to find barrel.");
-		}
-
-		let exportType = this.settings.exportType;
-		if (this.settings.exportType === "default") {
-			exportType = "named";
-		}
-		const barrelTemplate = await this.generateBarrelTemplate(
-			componentName,
-			componentFilename,
-			{
-				exportType,
-			}
-		);
-
-		await fs.writeFile(barrelPath, barrelTemplate, { flag: "a+" });
-
-		const componentTemplate = await this.generateComponentTemplate(
-			componentName,
-			componentFilename,
-			{
-				exportType,
-			}
-		);
-		await fs.writeFile(componentPath, componentTemplate);
-
-		const doc = await vscode.workspace.openTextDocument(componentPath);
-		vscode.window.showTextDocument(doc);
-	}
-
-	public async create(targetDir?: string) {
-		if (!targetDir) {
-			targetDir = await this.getDir();
-		}
-		const root = await this.getRoot(targetDir);
-		const { name, settings } = await this.getUserSettings();
-		const { extension, reactExtension } = this.getExtension(
-			settings.typescript
-		);
-
-		const dirName = this.normalizeDirName(name);
-		const dirPath = path.join(root, dirName);
-
-		const componentName = this.normalizeComponentName(name);
-		const componentFile = `${componentName}.${reactExtension}`;
-		const componentFilename = settings.fileExtensions
-			? componentFile
-			: componentName;
-		const componentPath = path.join(dirPath, componentFile);
-		const componentTemplate = await this.generateComponentTemplate(
-			componentName,
-			componentFilename,
-			{
-				exportType: this.settings.exportType,
-			}
-		);
-
-		const barrelFile = `index.${extension}`;
-		const barrelPath = path.join(dirPath, barrelFile);
-		const barrelTemplate = await this.generateBarrelTemplate(
-			componentName,
-			componentFilename,
-			{
-				exportType: this.settings.exportType,
-			}
-		);
-
-		await fs.mkdir(dirPath);
-		await fs.writeFile(barrelPath, barrelTemplate);
-		await fs.writeFile(componentPath, componentTemplate);
-
-		const doc = await vscode.workspace.openTextDocument(componentPath);
-		vscode.window.showTextDocument(doc);
-	}
-
-	public async explorerCreate(filePath: string) {
-		const normalizedFilePath = this.tidyDir(filePath);
-		const stats = await fs.lstat(normalizedFilePath);
-		if (stats.isDirectory()) {
-			this.create(normalizedFilePath);
-		} else {
-			this.create(path.dirname(normalizedFilePath));
-		}
-	}
-
-	public async explorerAdd(filePath: string) {
-		const normalizedFilePath = this.tidyDir(filePath);
-		const stats = await fs.lstat(normalizedFilePath);
-		if (stats.isDirectory()) {
-			this.add(normalizedFilePath);
-		} else {
-			this.add(path.dirname(normalizedFilePath));
 		}
 	}
 
