@@ -42,9 +42,11 @@ Minor bump due to removal of settings, in future this will be a Major bump but u
     -   might add to settings
 -   added includeStyle setting
 -   added includeTranslation setting
+-   added includeTest setting
 -   added run time setting checkboxes
 -   added folder picker for use outside of explorer
     -   I might always show this in future if requested or if it annoys me!
+-   renamed fileExtensions to includeFileExtensions
 
 ---
 

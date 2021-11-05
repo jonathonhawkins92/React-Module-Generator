@@ -39,7 +39,7 @@
 					"description": "Enable/disable TypeScript file generation.",
 					"scope": "resource"
 				},
-				"rmg.fileExtensions": {
+				"rmg.includeFileExtensions": {
 					"type": "boolean",
 					"default": true,
 					"description": "Enable/disable file extension in barrel files export.",
@@ -55,6 +55,12 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Enable/disable the addition of a translation file and importing of said file in component.",
+					"scope": "resource"
+				},
+				"rmg.includeTest": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable/disable the addition of a test file.",
 					"scope": "resource"
 				},
 				"rmg.defaultImports": {
