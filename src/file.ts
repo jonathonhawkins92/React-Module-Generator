@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 
+import templates from "./template";
+
 export interface NewFileSettings {
 	typescript: boolean;
 	fileExtensions: boolean;
@@ -105,7 +107,7 @@ export default class FileController {
 
 		const componentName = this.normalizeComponentName(name);
 		const componentFile = `${componentName}.${this.reactExtension}`;
-		const componentExportPath = this.settings.fileExtensions
+		const componentFilename = this.settings.fileExtensions
 			? componentFile
 			: componentName;
 		const componentPath = path.join(root, componentFile);
@@ -123,18 +125,18 @@ export default class FileController {
 		}
 		const barrelTemplate = await this.generateBarrelTemplate(
 			componentName,
-			componentExportPath,
+			componentFilename,
 			{
 				exportType,
 			}
 		);
 
-		await fs.writeFile(barrelPath, `\n${barrelTemplate}`, { flag: "a+" });
+		await fs.writeFile(barrelPath, barrelTemplate, { flag: "a+" });
 
 		const componentTemplate = await this.generateComponentTemplate(
 			componentName,
+			componentFilename,
 			{
-				defaultImports: this.settings.defaultImports,
 				exportType,
 			}
 		);
@@ -152,14 +154,14 @@ export default class FileController {
 
 		const componentName = this.normalizeComponentName(name);
 		const componentFile = `${componentName}.${this.reactExtension}`;
-		const componentExportPath = this.settings.fileExtensions
+		const componentFilename = this.settings.fileExtensions
 			? componentFile
 			: componentName;
 		const componentPath = path.join(dirPath, componentFile);
 		const componentTemplate = await this.generateComponentTemplate(
 			componentName,
+			componentFilename,
 			{
-				defaultImports: this.settings.defaultImports,
 				exportType: this.settings.exportType,
 			}
 		);
@@ -168,7 +170,7 @@ export default class FileController {
 		const barrelPath = path.join(dirPath, barrelFile);
 		const barrelTemplate = await this.generateBarrelTemplate(
 			componentName,
-			componentExportPath,
+			componentFilename,
 			{
 				exportType: this.settings.exportType,
 			}
@@ -228,54 +230,61 @@ export default class FileController {
 
 	private async generateComponentTemplate(
 		componentName: string,
+		componentFilename: string,
 		{
-			defaultImports = [],
 			exportType,
 		}: {
-			defaultImports: string[];
 			exportType: NewFileSettings["exportType"];
 		}
 	) {
-		let result = "";
+		const options = {
+			componentFilename,
+			componentName,
+		};
+		const head = templates.componentImports({
+			...options,
+			imports: this.settings.defaultImports,
+		});
+		let body = "";
 		switch (exportType) {
 			case "all":
+				body = templates.componentAll(options);
+				break;
 			case "named":
-				result = `export function ${componentName}() {\n\treturn <div />;\n};`;
+				body = templates.componentNamed(options);
 				break;
 			case "default":
 			default:
-				result = `function ${componentName}() {\n\treturn <div />;\n};\n\nexport default ${componentName};`;
+				body = templates.componentAll(options);
 				break;
 		}
 
-		if (defaultImports.length > 0) {
-			const imports = defaultImports.join("\n");
-			if (imports.trim()) {
-				result = `${imports}\n\n${result}`;
-			}
-		}
-		return result;
+		return head + body;
 	}
 	private async generateBarrelTemplate(
 		componentName: string,
-		componentExportPath: string,
+		componentFilename: string,
 		{
 			exportType,
 		}: {
 			exportType: NewFileSettings["exportType"];
 		}
 	) {
+		const options = {
+			componentFilename,
+			componentName,
+		};
 		let result = "";
 		switch (exportType) {
 			case "all":
-				result = `export * from './${componentExportPath}';`;
+				result = templates.barrelAll(options);
 				break;
 			case "named":
-				result = `export { ${componentName} } from './${componentExportPath}';`;
+				result = templates.barrelNamed(options);
 				break;
 			case "default":
 			default:
-				result = `export { default } from './${componentExportPath}';`;
+				result = templates.barrelDefault(options);
 				break;
 		}
 		return result;
