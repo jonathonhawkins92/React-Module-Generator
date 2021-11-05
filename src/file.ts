@@ -53,56 +53,74 @@ export default class FileController {
 		return this;
 	}
 
-	private async getRoot(value?: string) {
-		let result: string | undefined = value || this.settings.rootDirectory;
-		if (!result) {
-			result = await this.determineWorkspaceRoot();
-		}
-		if (!result) {
-			throw new Error("Unable to determine root");
-		}
-		return result;
-	}
-
 	private async getUserInput({
 		prompt,
-		value,
-		error,
-		select = true,
+		placeholder,
 	}: {
 		prompt: string;
-		value: string;
-		error: string;
-		select?: boolean;
+		placeholder: string;
 	}) {
-		let valueSelection: undefined | [number, number];
-		if (select) {
-			valueSelection = [
-				value.lastIndexOf(path.sep) + 1,
-				value.lastIndexOf("."),
-			];
-		}
-		let result = await vscode.window.showInputBox({
-			prompt,
-			value,
-			valueSelection,
+		const inputBox = await vscode.window.createInputBox();
+		inputBox.prompt = prompt;
+		inputBox.placeholder = placeholder;
+		let name = "";
+		await new Promise((resolve, reject) => {
+			let accepted = false;
+			inputBox.onDidChangeValue((value) => {
+				name = value;
+			});
+			inputBox.onDidAccept(() => {
+				accepted = true;
+				inputBox.dispose();
+				resolve(name);
+			});
+			inputBox.onDidHide(() => {
+				if (accepted) {
+					return;
+				}
+				reject("Input box hidden too early.");
+			});
+			inputBox.show();
 		});
-		if (!result) {
-			throw new Error(error);
+		if (!name.trim()) {
+			throw new Error("invalid name");
 		}
-		return result;
+		return name;
 	}
 
 	private getModuleName() {
 		return this.getUserInput({
 			prompt: "What's the name of your new module?",
-			value: this.settings.defaultModuleName,
-			error: "Invalid file path",
+			placeholder: this.settings.defaultModuleName,
 		});
 	}
 
-	private async add(explorerRootDirectory?: string) {
-		const root = await this.getRoot(explorerRootDirectory);
+	private async getRoot(value?: string) {
+		if (!value) {
+			value = await this.determineWorkspaceRoot();
+		}
+		if (!value) {
+			throw new Error("Unable to determine root");
+		}
+		return value;
+	}
+
+	private async getDir() {
+		const directories = await vscode.window.showOpenDialog({
+			canSelectFolders: true,
+			canSelectFiles: false,
+		});
+		if (directories && directories.length > 0) {
+			return directories[0].fsPath;
+		}
+		return this.settings.rootDirectory;
+	}
+
+	public async add(targetDir?: string) {
+		if (!targetDir) {
+			targetDir = await this.getDir();
+		}
+		const root = await this.getRoot(targetDir);
 		const name = await this.getModuleName();
 
 		const componentName = this.normalizeComponentName(name);
@@ -145,8 +163,11 @@ export default class FileController {
 		vscode.window.showInformationMessage(componentPath);
 	}
 
-	public async create(explorerRootDirectory?: string) {
-		const root = await this.getRoot(explorerRootDirectory);
+	public async create(targetDir?: string) {
+		if (!targetDir) {
+			targetDir = await this.getDir();
+		}
+		const root = await this.getRoot(targetDir);
 		const name = await this.getModuleName();
 
 		const dirName = this.normalizeDirName(name);

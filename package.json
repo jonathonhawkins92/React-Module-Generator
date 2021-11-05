@@ -25,8 +25,7 @@
 	],
 	"activationEvents": [
 		"onCommand:rmg.create",
-		"onCommand:rmg.explorerCreate",
-		"onCommand:rmg.explorerAdd"
+		"onCommand:rmg.add"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
@@ -85,21 +84,17 @@
 				"title": "RMG: Create"
 			},
 			{
-				"command": "rmg.explorerCreate",
-				"title": "RMG: Create"
-			},
-			{
-				"command": "rmg.explorerAdd",
+				"command": "rmg.add",
 				"title": "RMG: Add"
 			}
 		],
 		"menus": {
 			"explorer/context": [
 				{
-					"command": "rmg.explorerCreate"
+					"command": "rmg.create"
 				},
 				{
-					"command": "rmg.explorerAdd"
+					"command": "rmg.add"
 				}
 			]
 		}
