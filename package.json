@@ -45,18 +45,24 @@
 					"description": "Enable/disable file extension in barrel files export.",
 					"scope": "resource"
 				},
+				"rmg.includeStyle": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable/disable the addition of a style file and importing of said file in component.",
+					"scope": "resource"
+				},
+				"rmg.includeTranslation": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable/disable the addition of a translation file and importing of said file in component.",
+					"scope": "resource"
+				},
 				"rmg.defaultImports": {
 					"type": "array",
 					"default": [
 						"import * as React from 'react';"
 					],
 					"description": "Any and all imports needed in your module, if you want to disable this set it to an empty array.",
-					"scope": "resource"
-				},
-				"rmg.defaultModuleName": {
-					"type": "string",
-					"default": "ModuleName",
-					"description": "The default name of your new module.",
 					"scope": "resource"
 				},
 				"rmg.exportType": {
@@ -91,10 +97,12 @@
 		"menus": {
 			"explorer/context": [
 				{
-					"command": "rmg.create"
+					"command": "rmg.create",
+					"group": "RMG"
 				},
 				{
-					"command": "rmg.add"
+					"command": "rmg.add",
+					"group": "RMG"
 				}
 			]
 		}
