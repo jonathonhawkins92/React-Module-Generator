@@ -39,7 +39,7 @@
 					"description": "Enable/disable TypeScript file generation.",
 					"scope": "resource"
 				},
-				"rmg.includeFileExtensions": {
+				"rmg.includeFileExtension": {
 					"type": "boolean",
 					"default": true,
 					"description": "Enable/disable file extension in barrel files export.",
@@ -63,14 +63,6 @@
 					"description": "Enable/disable the addition of a test file.",
 					"scope": "resource"
 				},
-				"rmg.defaultImports": {
-					"type": "array",
-					"default": [
-						"import * as React from 'react';"
-					],
-					"description": "Any and all imports needed in your module, if you want to disable this set it to an empty array.",
-					"scope": "resource"
-				},
 				"rmg.exportType": {
 					"type": "string",
 					"enum": [
@@ -86,6 +78,17 @@
 					"type": "string",
 					"default": "",
 					"description": "The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.",
+					"scope": "resource"
+				},
+				"rmg.endOfLineSequence": {
+					"type": "string",
+					"default": "lf",
+					"enum": [
+						"lf",
+						"crlf",
+						"cr"
+					],
+					"description": "What style of end of line character we will use.",
 					"scope": "resource"
 				}
 			}

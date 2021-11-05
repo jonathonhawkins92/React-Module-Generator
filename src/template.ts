@@ -2,7 +2,7 @@ import { EOLS } from "./enums";
 
 export interface Options {
 	componentName: string;
-	includeFileExtensions: boolean;
+	includeFileExtension: boolean;
 }
 
 export interface NameTemplates {
@@ -54,32 +54,32 @@ class Templates
 		return `index.ts`;
 	}
 
-	public barrelAll({ componentName, includeFileExtensions }: Options) {
+	public barrelAll({ componentName, includeFileExtension }: Options) {
 		const name = this.componentName({
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 		});
 		return `export * from "./${name}";${this.eol}`;
 	}
 
-	public barrelNamed({ componentName, includeFileExtensions }: Options) {
+	public barrelNamed({ componentName, includeFileExtension }: Options) {
 		const name = this.componentName({
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 		});
 		return `export { ${componentName} } from "./${name}";${this.eol}`;
 	}
 
-	public barrelDefault({ componentName, includeFileExtensions }: Options) {
+	public barrelDefault({ componentName, includeFileExtension }: Options) {
 		const name = this.componentName({
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 		});
 		return `export default from "./${name}.ts";${this.eol}`;
 	}
 
-	public styleName({ componentName, includeFileExtensions }: Options) {
-		if (includeFileExtensions) {
+	public styleName({ componentName, includeFileExtension }: Options) {
+		if (includeFileExtension) {
 			return `${componentName}.module.css`;
 		}
 		return `${componentName}.module.css`;
@@ -88,8 +88,8 @@ class Templates
 		return `.root {}`;
 	}
 
-	public translationName({ componentName, includeFileExtensions }: Options) {
-		if (includeFileExtensions) {
+	public translationName({ componentName, includeFileExtension }: Options) {
+		if (includeFileExtension) {
 			return `${componentName}.translations.ts`;
 		}
 		return `${componentName}.translations`;
@@ -99,8 +99,8 @@ class Templates
 		return `export const translations = {};${this.eol}`;
 	}
 
-	public testName({ componentName, includeFileExtensions }: Options) {
-		if (includeFileExtensions) {
+	public testName({ componentName, includeFileExtension }: Options) {
+		if (includeFileExtension) {
 			return `${componentName}.test.ts`;
 		}
 		return `${componentName}.test`;
@@ -115,8 +115,8 @@ class Templates
 		return `${imports}${this.eol}${this.eol}test("If it works!", () => {});${this.eol}`;
 	}
 
-	public componentName({ componentName, includeFileExtensions }: Options) {
-		if (includeFileExtensions) {
+	public componentName({ componentName, includeFileExtension }: Options) {
+		if (includeFileExtension) {
 			return `${componentName}.tsx`;
 		}
 		return componentName;
@@ -125,14 +125,14 @@ class Templates
 	public componentImports({
 		includeStyle,
 		includeTranslation,
-		includeFileExtensions,
+		includeFileExtension,
 		componentName,
 	}: ImportOptions) {
 		let result = `import * as React from "react";\n\n`;
 		if (includeStyle) {
 			const name = this.styleName({
 				componentName,
-				includeFileExtensions,
+				includeFileExtension,
 			});
 			result += `import styles from "./${name}";${this.eol}`;
 		}
@@ -140,7 +140,7 @@ class Templates
 		if (includeTranslation) {
 			const name = this.translationName({
 				componentName,
-				includeFileExtensions,
+				includeFileExtension,
 			});
 			result += `import { translations } from "./${name}";${this.eol}`;
 		}

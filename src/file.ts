@@ -7,7 +7,7 @@ import { SettingIds, EOLS, ExportType } from "./enums";
 
 export interface NewFileSettings {
 	typescript: boolean;
-	includeFileExtensions: boolean;
+	includeFileExtension: boolean;
 	includeStyle: boolean;
 	includeTranslation: boolean;
 	includeTest: boolean;
@@ -31,7 +31,7 @@ export default class FileController {
 
 		this.settings = {
 			typescript: config.get("typescript", false),
-			includeFileExtensions: config.get("includeFileExtensions", false),
+			includeFileExtension: config.get("includeFileExtension", false),
 			includeStyle: config.get("includeStyle", false),
 			includeTranslation: config.get("includeTranslation", false),
 			includeTest: config.get("includeTest", false),
@@ -54,7 +54,7 @@ export default class FileController {
 		const componentName = this.normalizeComponentName(name);
 		const componentFilename = this.templates.componentName({
 			componentName,
-			includeFileExtensions: true,
+			includeFileExtension: true,
 		});
 		const componentPath = path.join(root, componentFilename);
 
@@ -73,7 +73,7 @@ export default class FileController {
 			componentName,
 			{
 				exportType,
-				includeFileExtensions: settings.includeFileExtensions,
+				includeFileExtension: settings.includeFileExtension,
 			}
 		);
 
@@ -84,7 +84,7 @@ export default class FileController {
 			{
 				includeTranslation: settings.includeTranslation,
 				includeStyle: settings.includeStyle,
-				includeFileExtensions: settings.includeFileExtensions,
+				includeFileExtension: settings.includeFileExtension,
 				includeTest: settings.includeTest,
 				exportType,
 			}
@@ -108,7 +108,7 @@ export default class FileController {
 		const componentName = this.normalizeComponentName(name);
 		const componentFilename = this.templates.componentName({
 			componentName,
-			includeFileExtensions: true,
+			includeFileExtension: true,
 		});
 		const componentPath = path.join(dirPath, componentFilename);
 		const componentTemplate = await this.generateComponentTemplate(
@@ -116,7 +116,7 @@ export default class FileController {
 			{
 				includeStyle: settings.includeStyle,
 				includeTranslation: settings.includeTranslation,
-				includeFileExtensions: settings.includeFileExtensions,
+				includeFileExtension: settings.includeFileExtension,
 				includeTest: settings.includeTest,
 				exportType: this.settings.exportType,
 			}
@@ -128,7 +128,7 @@ export default class FileController {
 			componentName,
 			{
 				exportType: this.settings.exportType,
-				includeFileExtensions: settings.includeFileExtensions,
+				includeFileExtension: settings.includeFileExtension,
 			}
 		);
 
@@ -138,7 +138,7 @@ export default class FileController {
 		if (settings.includeStyle) {
 			const styleName = this.templates.styleName({
 				componentName,
-				includeFileExtensions: true,
+				includeFileExtension: true,
 			});
 			const stylePath = path.join(dirPath, styleName);
 			const styleTemplate = this.generateStyleTemplate();
@@ -147,7 +147,7 @@ export default class FileController {
 		if (settings.includeTranslation) {
 			const translationName = this.templates.translationName({
 				componentName,
-				includeFileExtensions: true,
+				includeFileExtension: true,
 			});
 			const translationPath = path.join(dirPath, translationName);
 			const translationTemplate = this.generateTranslationTemplate();
@@ -156,7 +156,7 @@ export default class FileController {
 		if (settings.includeTest) {
 			const testName = this.templates.testName({
 				componentName,
-				includeFileExtensions: true,
+				includeFileExtension: true,
 			});
 			const testPath = path.join(dirPath, testName);
 			const testTemplate = this.generateTestTemplate();
@@ -236,9 +236,9 @@ export default class FileController {
 					label: "Include file extensions",
 					description:
 						"Add the files extension to your barrel files export.",
-					picked: this.settings.includeFileExtensions,
+					picked: this.settings.includeFileExtension,
 				},
-				id: SettingIds.includeFileExtensions,
+				id: SettingIds.includeFileExtension,
 			},
 		};
 		const settingsQuickPicks = Object.values(settingsMap).map(
@@ -290,8 +290,8 @@ export default class FileController {
 			[SettingIds.typescript]: selectedIds.includes(
 				SettingIds.typescript
 			),
-			[SettingIds.includeFileExtensions]: selectedIds.includes(
-				SettingIds.includeFileExtensions
+			[SettingIds.includeFileExtension]: selectedIds.includes(
+				SettingIds.includeFileExtension
 			),
 			[SettingIds.includeStyle]: selectedIds.includes(
 				SettingIds.includeStyle
@@ -370,26 +370,26 @@ export default class FileController {
 			exportType,
 			includeStyle,
 			includeTranslation,
-			includeFileExtensions,
+			includeFileExtension,
 			includeTest,
 		}: {
 			exportType: NewFileSettings["exportType"];
 			includeStyle: boolean;
 			includeTranslation: boolean;
-			includeFileExtensions: boolean;
+			includeFileExtension: boolean;
 			includeTest: boolean;
 		}
 	) {
 		const head = this.templates.componentImports({
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 			includeStyle,
 			includeTranslation,
 		});
 
 		const componentOptions = {
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 			includeStyle,
 			includeTest,
 		};
@@ -413,15 +413,15 @@ export default class FileController {
 		componentName: string,
 		{
 			exportType,
-			includeFileExtensions,
+			includeFileExtension,
 		}: {
 			exportType: NewFileSettings["exportType"];
-			includeFileExtensions: boolean;
+			includeFileExtension: boolean;
 		}
 	) {
 		const options = {
 			componentName,
-			includeFileExtensions,
+			includeFileExtension,
 		};
 		let result = "";
 		switch (exportType) {

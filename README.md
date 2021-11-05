@@ -9,12 +9,13 @@ Create modules, what is a module? A module is a self contained component that ex
 ## Extension Settings
 
 -   `rmg.typescript`: Enable/disable TypeScript file generation.
--   `rmg.fileExtensions`: Enable/disable file extension in barrel files export.
+-   `rmg.includeFileExtension`: Enable/disable file extension in barrel files export.
 -   `rmg.includeStyle`: Enable/disable the addition of a style file and importing of said file in component.
 -   `rmg.includeTranslation`: Enable/disable the addition of a translation file and importing of said file in component.
--   `rmg.defaultImports`: Any and all imports needed in your module, if you want to disable this set it to an empty array.
+-   `rmg.includeTest`: Enable/disable the addition of a translation file and importing of said file in component.
 -   `rmg.exportType`: What type of export you want to use https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export.
 -   `rmg.rootDirectory`: The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.
+-   `rmg.endOfLineSequence`: `lf | crlf | cr` What style of end of line character we will use.
 
 ## Known Issues
 
@@ -46,7 +47,7 @@ Minor bump due to removal of settings, in future this will be a Major bump but u
 -   added run time setting checkboxes
 -   added folder picker for use outside of explorer
     -   I might always show this in future if requested or if it annoys me!
--   renamed fileExtensions to includeFileExtensions
+-   renamed fileExtensions to includeFileExtension
 
 ---
 

@@ -6,7 +6,7 @@ export enum EOLS {
 
 export enum SettingIds {
 	typescript = "typescript",
-	includeFileExtensions = "includeFileExtensions",
+	includeFileExtension = "includeFileExtension",
 	includeStyle = "includeStyle",
 	includeTranslation = "includeTranslation",
 	includeTest = "includeTest",
