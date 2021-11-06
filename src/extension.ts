@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import FileController from "./file";
+import Command from "./command";
 
 function showError(error: unknown) {
 	if (error instanceof Error) {
@@ -12,12 +12,12 @@ export function activate(context: vscode.ExtensionContext) {
 		"rmg.create",
 		async (file) => {
 			try {
-				const fileHandler = new FileController();
+				const command = new Command();
 				if (!file || !file.path) {
-					await fileHandler.create();
+					await command.create();
 					return;
 				}
-				await fileHandler.explorerCreate(file.path);
+				await command.explorerCreate(file.path);
 			} catch (err) {
 				showError(err);
 			}
@@ -27,12 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 	const add = vscode.commands.registerCommand("rmg.add", async (file) => {
 		try {
-			const fileHandler = new FileController();
+			const command = new Command();
 			if (!file || !file.path) {
-				await fileHandler.add();
+				await command.add();
 				return;
 			}
-			await fileHandler.explorerAdd(file.path);
+			await command.explorerAdd(file.path);
 		} catch (err) {
 			showError(err);
 		}

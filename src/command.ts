@@ -2,25 +2,16 @@ import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-import Templates from "./template";
-import { SettingIds, EOLS, ExportType } from "./enums";
+import * as templates from "./template";
+import { SettingIds, EOLS, ExportMethod, ImportMethod } from "./enums";
 
-export interface NewFileSettings {
-	typescript: boolean;
-	includeFileExtension: boolean;
-	includeStyle: boolean;
-	includeTranslation: boolean;
-	includeTest: boolean;
-	exportType: ExportType;
-	rootDirectory: string;
-	endOfLineSequence: EOLS;
+export interface CommandSettings {
+	template: templates.Settings;
 }
 
-export default class FileController {
-	private settings: NewFileSettings;
-
+export default class Command {
+	private settings: CommandSettings;
 	private currentUri?: vscode.Uri;
-	private templates: Templates;
 
 	constructor(currentUri?: vscode.Uri) {
 		this.currentUri = currentUri ?? this.getUriOfCurrentFile();
@@ -30,17 +21,41 @@ export default class FileController {
 		);
 
 		this.settings = {
-			typescript: config.get("typescript", false),
-			includeFileExtension: config.get("includeFileExtension", false),
-			includeStyle: config.get("includeStyle", false),
-			includeTranslation: config.get("includeTranslation", false),
-			includeTest: config.get("includeTest", false),
-			exportType: config.get("exportType", ExportType.all),
-			rootDirectory: config.get("rootDirectory", ""),
-			endOfLineSequence: config.get("endOfLineSequence", EOLS.lf),
+			template: {
+				endOfLineSequence: config.get("endOfLineSequence", EOLS.lf),
+				exportMethod: config.get("exportMethod", ExportMethod.all),
+				importMethod: config.get("importMethod", ImportMethod.named),
+				includeFileExtension: config.get("includeFileExtension", false),
+
+				componentName: config.get("componentName"),
+				componentAlias: config.get("componentAlias"),
+				componentExtension: config.get("componentExtension", ".tsx"),
+
+				includeBarrel: config.get("includeBarrel", true),
+				barrelName: config.get("barrelName"),
+				barrelAlias: config.get("barrelAlias"),
+				barrelExtension: config.get("barrelExtension", ".ts"),
+
+				includeStyle: config.get("includeStyle", true),
+				styleName: config.get("styleName"),
+				styleAlias: config.get("styleAlias"),
+				styleExtension: config.get("styleExtension", "module.css"),
+
+				includeTranslation: config.get("includeTranslation", true),
+				translationName: config.get("translationName"),
+				translationAlias: config.get("translationAlias"),
+				translationExtension: config.get(
+					"translationExtension",
+					"intl.ts"
+				),
+
+				includeTest: config.get("includeTest", true),
+				testName: config.get("testName"),
+				testAlias: config.get("testAlias"),
+				testExtension: config.get("testExtension", "test.ts"),
+			},
 		};
 
-		this.templates = new Templates(this.settings.endOfLineSequence);
 		return this;
 	}
 
@@ -48,50 +63,63 @@ export default class FileController {
 		if (!targetDir) {
 			targetDir = await this.getDir();
 		}
-		const root = await this.getRoot(targetDir);
+		const directory = await this.getRoot(targetDir);
 		const { name, settings } = await this.getUserSettings();
+		const moduleName = this.normalizeComponentName(name);
 
-		const componentName = this.normalizeComponentName(name);
-		const componentFilename = this.templates.componentName({
-			componentName,
-			includeFileExtension: true,
-		});
-		const componentPath = path.join(root, componentFilename);
+		const style = new templates.Style(
+			directory,
+			moduleName,
+			[],
+			this.settings.template
+		);
+		const translation = new templates.Translation(
+			directory,
+			moduleName,
+			[],
+			this.settings.template
+		);
+		const component = new templates.Component(
+			directory,
+			moduleName,
+			[style, translation],
+			this.settings.template
+		);
+		const test = new templates.Test(
+			directory,
+			moduleName,
+			[component],
+			this.settings.template
+		);
+		const barrel = new templates.Barrel(
+			directory,
+			moduleName,
+			[component],
+			this.settings.template
+		);
 
-		const barrelFilename = this.templates.barrelName();
-		const barrelPath = path.join(root, barrelFilename);
-		const isBarrel = await fs.stat(barrelPath);
+		const isBarrel = await fs.stat(barrel.path);
 		if (!isBarrel.isFile()) {
 			throw new Error("Unable to find barrel.");
 		}
 
-		let exportType = this.settings.exportType;
-		if (this.settings.exportType === "default") {
-			exportType = ExportType.named;
+		if (settings.includeStyle) {
+			await fs.writeFile(style.path, style.content);
 		}
-		const barrelTemplate = await this.generateBarrelTemplate(
-			componentName,
-			{
-				exportType,
-				includeFileExtension: settings.includeFileExtension,
-			}
-		);
 
-		await fs.writeFile(barrelPath, barrelTemplate, { flag: "a+" });
+		if (settings.includeTranslation) {
+			await fs.writeFile(translation.path, translation.content);
+		}
 
-		const componentTemplate = await this.generateComponentTemplate(
-			componentName,
-			{
-				includeTranslation: settings.includeTranslation,
-				includeStyle: settings.includeStyle,
-				includeFileExtension: settings.includeFileExtension,
-				includeTest: settings.includeTest,
-				exportType,
-			}
-		);
-		await fs.writeFile(componentPath, componentTemplate);
+		await fs.writeFile(component.path, component.content);
 
-		const doc = await vscode.workspace.openTextDocument(componentPath);
+		if (settings.includeTest) {
+			await fs.writeFile(test.path, test.content);
+		}
+
+		await fs.writeFile(barrel.path, barrel.content, { flag: "a+" });
+
+		const doc = await vscode.workspace.openTextDocument(component.path);
 		vscode.window.showTextDocument(doc);
 	}
 
@@ -103,69 +131,59 @@ export default class FileController {
 		const { name, settings } = await this.getUserSettings();
 
 		const dirName = this.normalizeDirName(name);
-		const dirPath = path.join(root, dirName);
+		const directory = path.join(root, dirName);
+		const moduleName = this.normalizeComponentName(name);
 
-		const componentName = this.normalizeComponentName(name);
-		const componentFilename = this.templates.componentName({
-			componentName,
-			includeFileExtension: true,
-		});
-		const componentPath = path.join(dirPath, componentFilename);
-		const componentTemplate = await this.generateComponentTemplate(
-			componentName,
-			{
-				includeStyle: settings.includeStyle,
-				includeTranslation: settings.includeTranslation,
-				includeFileExtension: settings.includeFileExtension,
-				includeTest: settings.includeTest,
-				exportType: this.settings.exportType,
-			}
+		const style = new templates.Style(
+			directory,
+			moduleName,
+			[],
+			this.settings.template
+		);
+		const translation = new templates.Translation(
+			directory,
+			moduleName,
+			[],
+			this.settings.template
+		);
+		const component = new templates.Component(
+			directory,
+			moduleName,
+			[style, translation],
+			this.settings.template
+		);
+		const test = new templates.Test(
+			directory,
+			moduleName,
+			[component],
+			this.settings.template
+		);
+		const barrel = new templates.Barrel(
+			directory,
+			moduleName,
+			[component],
+			this.settings.template
 		);
 
-		const barrelFile = this.templates.barrelName();
-		const barrelPath = path.join(dirPath, barrelFile);
-		const barrelTemplate = await this.generateBarrelTemplate(
-			componentName,
-			{
-				exportType: this.settings.exportType,
-				includeFileExtension: settings.includeFileExtension,
-			}
-		);
-
-		await fs.mkdir(dirPath);
-		await fs.writeFile(barrelPath, barrelTemplate);
+		await fs.mkdir(directory);
 
 		if (settings.includeStyle) {
-			const styleName = this.templates.styleName({
-				componentName,
-				includeFileExtension: true,
-			});
-			const stylePath = path.join(dirPath, styleName);
-			const styleTemplate = this.generateStyleTemplate();
-			await fs.writeFile(stylePath, styleTemplate);
+			await fs.writeFile(style.path, style.content);
 		}
+
 		if (settings.includeTranslation) {
-			const translationName = this.templates.translationName({
-				componentName,
-				includeFileExtension: true,
-			});
-			const translationPath = path.join(dirPath, translationName);
-			const translationTemplate = this.generateTranslationTemplate();
-			await fs.writeFile(translationPath, translationTemplate);
+			await fs.writeFile(translation.path, translation.content);
 		}
+
+		await fs.writeFile(component.path, component.content);
+
 		if (settings.includeTest) {
-			const testName = this.templates.testName({
-				componentName,
-				includeFileExtension: true,
-			});
-			const testPath = path.join(dirPath, testName);
-			const testTemplate = this.generateTestTemplate();
-			await fs.writeFile(testPath, testTemplate);
+			await fs.writeFile(test.path, test.content);
 		}
 
-		await fs.writeFile(componentPath, componentTemplate);
+		await fs.writeFile(barrel.path, barrel.content);
 
-		const doc = await vscode.workspace.openTextDocument(componentPath);
+		const doc = await vscode.workspace.openTextDocument(component.path);
 		vscode.window.showTextDocument(doc);
 	}
 
@@ -190,9 +208,6 @@ export default class FileController {
 	}
 
 	private async getUserSettings() {
-		console.log(this.settings);
-		console.log(this.settings.includeStyle);
-		console.log(this.settings.includeTranslation);
 		const settingsMap: Record<
 			string,
 			{
@@ -206,7 +221,7 @@ export default class FileController {
 					label: "Include styles",
 					description:
 						"Create a style file and import it in your component.",
-					picked: this.settings.includeStyle,
+					picked: this.settings.template.includeStyle,
 				},
 				id: SettingIds.includeStyle,
 			},
@@ -216,7 +231,7 @@ export default class FileController {
 					label: "Include translations",
 					description:
 						"Create a translation file and import it in your component.",
-					picked: this.settings.includeTranslation,
+					picked: this.settings.template.includeTranslation,
 				},
 				id: SettingIds.includeTranslation,
 			},
@@ -226,7 +241,7 @@ export default class FileController {
 					label: "Include tests",
 					description:
 						"Create a test file and import your component.",
-					picked: this.settings.includeTest,
+					picked: this.settings.template.includeTest,
 				},
 				id: SettingIds.includeTest,
 			},
@@ -236,7 +251,7 @@ export default class FileController {
 					label: "Include file extensions",
 					description:
 						"Add the files extension to your barrel files export.",
-					picked: this.settings.includeFileExtension,
+					picked: this.settings.template.includeFileExtension,
 				},
 				id: SettingIds.includeFileExtension,
 			},
@@ -324,7 +339,7 @@ export default class FileController {
 		if (directories && directories.length > 0) {
 			return directories[0].fsPath;
 		}
-		return this.settings.rootDirectory;
+		return undefined;
 	}
 
 	private normalizeName(value: string, delimiter: string) {
@@ -348,93 +363,6 @@ export default class FileController {
 		let result = "";
 		for (const chunk of this.normalizeName(value, delimiter)) {
 			result += chunk[0].toUpperCase() + chunk.slice(1);
-		}
-		return result;
-	}
-
-	private generateStyleTemplate() {
-		return this.templates.style();
-	}
-
-	private generateTranslationTemplate() {
-		return this.templates.translation();
-	}
-
-	private generateTestTemplate() {
-		return this.templates.test();
-	}
-
-	private async generateComponentTemplate(
-		componentName: string,
-		{
-			exportType,
-			includeStyle,
-			includeTranslation,
-			includeFileExtension,
-			includeTest,
-		}: {
-			exportType: NewFileSettings["exportType"];
-			includeStyle: boolean;
-			includeTranslation: boolean;
-			includeFileExtension: boolean;
-			includeTest: boolean;
-		}
-	) {
-		const head = this.templates.componentImports({
-			componentName,
-			includeFileExtension,
-			includeStyle,
-			includeTranslation,
-		});
-
-		const componentOptions = {
-			componentName,
-			includeFileExtension,
-			includeStyle,
-			includeTest,
-		};
-		let body = "";
-		switch (exportType) {
-			case ExportType.all:
-				body = this.templates.componentAll(componentOptions);
-				break;
-			case ExportType.named:
-				body = this.templates.componentNamed(componentOptions);
-				break;
-			case ExportType.default:
-			default:
-				body = this.templates.componentAll(componentOptions);
-				break;
-		}
-
-		return head + body;
-	}
-	private async generateBarrelTemplate(
-		componentName: string,
-		{
-			exportType,
-			includeFileExtension,
-		}: {
-			exportType: NewFileSettings["exportType"];
-			includeFileExtension: boolean;
-		}
-	) {
-		const options = {
-			componentName,
-			includeFileExtension,
-		};
-		let result = "";
-		switch (exportType) {
-			case ExportType.all:
-				result = this.templates.barrelAll(options);
-				break;
-			case ExportType.named:
-				result = this.templates.barrelNamed(options);
-				break;
-			case ExportType.default:
-			default:
-				result = this.templates.barrelDefault(options);
-				break;
 		}
 		return result;
 	}

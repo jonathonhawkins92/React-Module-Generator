@@ -12,8 +12,16 @@ export enum SettingIds {
 	includeTest = "includeTest",
 }
 
-export enum ExportType {
+export enum ExportMethod {
 	all = "all",
 	named = "named",
 	default = "default",
+	defaultNamed = "defaultNamed",
+}
+
+export enum ImportMethod {
+	all = "all",
+	named = "named",
+	default = "default",
+	defaultNamed = "defaultNamed",
 }
