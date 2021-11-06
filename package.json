@@ -1,6 +1,7 @@
 {
 	"name": "rmg",
 	"displayName": "react-module-generator",
+	"markdownDescription": "generate react modules 🤯",
 	"description": "generate react modules 🤯",
 	"icon": "images/logo.png",
 	"galleryBanner": {
@@ -21,7 +22,13 @@
 		"vscode": "^1.61.0"
 	},
 	"categories": [
-		"Other"
+		"Snippets"
+	],
+	"keywords": [
+		"React",
+		"Module",
+		"Snippet",
+		"File"
 	],
 	"activationEvents": [
 		"onCommand:rmg.create",
@@ -30,57 +37,10 @@
 	"main": "./dist/extension.js",
 	"contributes": {
 		"configuration": {
-			"title": "React Module Generator Configuration",
+			"title": "RMG",
 			"type": "object",
 			"properties": {
-				"rmg.typescript": {
-					"type": "boolean",
-					"default": false,
-					"description": "Enable/disable TypeScript file generation.",
-					"scope": "resource"
-				},
-				"rmg.includeFileExtension": {
-					"type": "boolean",
-					"default": true,
-					"description": "Enable/disable file extension in barrel files export.",
-					"scope": "resource"
-				},
-				"rmg.includeStyle": {
-					"type": "boolean",
-					"default": false,
-					"description": "Enable/disable the addition of a style file and importing of said file in component.",
-					"scope": "resource"
-				},
-				"rmg.includeTranslation": {
-					"type": "boolean",
-					"default": false,
-					"description": "Enable/disable the addition of a translation file and importing of said file in component.",
-					"scope": "resource"
-				},
-				"rmg.includeTest": {
-					"type": "boolean",
-					"default": false,
-					"description": "Enable/disable the addition of a test file.",
-					"scope": "resource"
-				},
-				"rmg.exportType": {
-					"type": "string",
-					"enum": [
-						"all",
-						"named",
-						"default"
-					],
-					"default": "all",
-					"description": "What type of export you want to use https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export.",
-					"scope": "resource"
-				},
-				"rmg.rootDirectory": {
-					"type": "string",
-					"default": "",
-					"description": "The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.",
-					"scope": "resource"
-				},
-				"rmg.endOfLineSequence": {
+				"rmg.global.endOfLineSequence": {
 					"type": "string",
 					"default": "lf",
 					"enum": [
@@ -88,7 +48,276 @@
 						"crlf",
 						"cr"
 					],
+					"markdownDescription": "What style of end of line character we will use.",
 					"description": "What style of end of line character we will use.",
+					"scope": "resource"
+				},
+				"rmg.component.imports": {
+					"type": "array",
+					"default": [],
+					"markdownDescription": "A list of imports, eg `import * as React from \"react\";`",
+					"description": "A list of imports, eg `import * as React from \"react\";`",
+					"scope": "resource"
+				},
+				"rmg.component.export.type": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default",
+						"defaultNamed"
+					],
+					"default": "named",
+					"markdownDescription": "How we will export and then import your file.",
+					"description": "How we will export and then import your file.",
+					"scope": "resource"
+				},
+				"rmg.component.export.extension": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable the file extension when importing.",
+					"description": "Enable/disable the file extension when importing.",
+					"scope": "resource"
+				},
+				"rmg.component.export.alias": {
+					"type": "string",
+					"default": "component",
+					"markdownDescription": "The name used when importing the component, we fallback to component.",
+					"description": "The name used when importing the component, we fallback to component.",
+					"scope": "resource"
+				},
+				"rmg.component.file.name": {
+					"type": "string",
+					"markdownDescription": "The name given to your component's file, we fallback to the module's name.",
+					"description": "The name given to your component's file, we fallback to the module's name.",
+					"scope": "resource"
+				},
+				"rmg.component.file.extension": {
+					"type": "string",
+					"default": ".tsx",
+					"markdownDescription": "The type of file you are creating, we fallback to `.tsx`.",
+					"description": "The type of file you are creating, we fallback to `.tsx`.",
+					"scope": "resource"
+				},
+				"rmg.barrel.include": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable the addition of a barrel file.",
+					"description": "Enable/disable the addition of a barrel file.",
+					"scope": "resource"
+				},
+				"rmg.barrel.imports": {
+					"type": "array",
+					"default": [],
+					"markdownDescription": "A list of imports, eg `import * as React from \"react\";`",
+					"description": "A list of imports, eg `import * as React from \"react\";`",
+					"scope": "resource"
+				},
+				"rmg.barrel.export.type": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default",
+						"defaultNamed"
+					],
+					"default": "all",
+					"markdownDescription": "How we will export and then import your file.",
+					"description": "How we will export and then import your file.",
+					"scope": "resource"
+				},
+				"rmg.barrel.export.extension": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable the file extension when importing.",
+					"description": "Enable/disable the file extension when importing.",
+					"scope": "resource"
+				},
+				"rmg.barrel.export.alias": {
+					"type": "string",
+					"default": "barrel",
+					"markdownDescription": "The name used when importing the barrel, we fallback to `barrel`.",
+					"description": "The name used when importing the barrel, we fallback to `barrel`.",
+					"scope": "resource"
+				},
+				"rmg.barrel.file.name": {
+					"type": "string",
+					"default": "index",
+					"markdownDescription": "The name given to your barrel's file, we fallback to `index` then to the module's name.",
+					"description": "The name given to your barrel's file, we fallback to `index` then to the module's name.",
+					"scope": "resource"
+				},
+				"rmg.barrel.file.extension": {
+					"type": "string",
+					"default": ".ts",
+					"markdownDescription": "The type of file you are creating, we fallback to `.ts`.",
+					"description": "The type of file you are creating, we fallback to `.ts`.",
+					"scope": "resource"
+				},
+				"rmg.style.include": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable the addition of a style file and importing of said file in component.",
+					"description": "Enable/disable the addition of a style file and importing of said file in component.",
+					"scope": "resource"
+				},
+				"rmg.style.imports": {
+					"type": "array",
+					"default": [],
+					"markdownDescription": "A list of imports, eg `import * as React from \"react\";`",
+					"description": "A list of imports, eg `import * as React from \"react\";`",
+					"scope": "resource"
+				},
+				"rmg.style.export.type": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default",
+						"defaultNamed"
+					],
+					"default": "default",
+					"markdownDescription": "How we will export and then import your file.",
+					"description": "How we will export and then import your file.",
+					"scope": "resource"
+				},
+				"rmg.style.export.extension": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable the file extension when importing.",
+					"description": "Enable/disable the file extension when importing.",
+					"scope": "resource"
+				},
+				"rmg.style.export.alias": {
+					"type": "string",
+					"default": "style",
+					"markdownDescription": "The name used when importing the style, we fallback to `style`.",
+					"description": "The name used when importing the style, we fallback to `style`.",
+					"scope": "resource"
+				},
+				"rmg.style.file.name": {
+					"type": "string",
+					"markdownDescription": "The name given to your style's file, we fallback to the module's name.",
+					"description": "The name given to your style's file, we fallback to the module's name.",
+					"scope": "resource"
+				},
+				"rmg.style.file.extension": {
+					"type": "string",
+					"default": ".module.css",
+					"markdownDescription": "The type of file you are creating, we fallback to `.module.css`.",
+					"description": "The type of file you are creating, we fallback to `.module.css`.",
+					"scope": "resource"
+				},
+				"rmg.translation.include": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable the addition of a translation file and importing of said file in component.",
+					"description": "Enable/disable the addition of a translation file and importing of said file in component.",
+					"scope": "resource"
+				},
+				"rmg.translation.imports": {
+					"type": "array",
+					"default": [],
+					"markdownDescription": "A list of imports, eg `import * as React from \"react\";`",
+					"description": "A list of imports, eg `import * as React from \"react\";`",
+					"scope": "resource"
+				},
+				"rmg.translation.export.type": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default",
+						"defaultNamed"
+					],
+					"default": "named",
+					"markdownDescription": "How we will export and then import your file.",
+					"description": "How we will export and then import your file.",
+					"scope": "resource"
+				},
+				"rmg.translation.export.extension": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable the file extension when importing.",
+					"description": "Enable/disable the file extension when importing.",
+					"scope": "resource"
+				},
+				"rmg.translation.export.alias": {
+					"type": "string",
+					"default": "translation",
+					"markdownDescription": "The name used when importing the translation, we fallback to `translation`.",
+					"description": "The name used when importing the translation, we fallback to `translation`.",
+					"scope": "resource"
+				},
+				"rmg.translation.file.name": {
+					"type": "string",
+					"markdownDescription": "The name given to your translation's file, we fallback to the module's name.",
+					"description": "The name given to your translation's file, we fallback to the module's name.",
+					"scope": "resource"
+				},
+				"rmg.translation.file.extension": {
+					"type": "string",
+					"default": ".intl.ts",
+					"markdownDescription": "The type of file you are creating, we fallback to `.intl.ts`.",
+					"description": "The type of file you are creating, we fallback to `.intl.ts`.",
+					"scope": "resource"
+				},
+				"rmg.test.include": {
+					"type": "boolean",
+					"default": true,
+					"markdownDescription": "Enable/disable the addition of a test file.",
+					"description": "Enable/disable the addition of a test file.",
+					"scope": "resource"
+				},
+				"rmg.test.imports": {
+					"type": "array",
+					"default": [
+						"import * as RTL from \"@testing-library/react\";",
+						"import * as React from \"react\";",
+						"import \"@testing-library/jest-dom\";"
+					],
+					"markdownDescription": "A list of imports, eg `import * as React from \"react\";`",
+					"description": "A list of imports, eg `import * as React from \"react\";`",
+					"scope": "resource"
+				},
+				"rmg.test.export.type": {
+					"type": "string",
+					"enum": [
+						"all",
+						"named",
+						"default",
+						"defaultNamed"
+					],
+					"default": "all",
+					"markdownDescription": "How we will export and then import your file.",
+					"description": "How we will export and then import your file.",
+					"scope": "resource"
+				},
+				"rmg.test.export.extension": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "Enable/disable the file extension when importing.",
+					"description": "Enable/disable the file extension when importing.",
+					"scope": "resource"
+				},
+				"rmg.test.export.alias": {
+					"type": "string",
+					"default": "test",
+					"markdownDescription": "The name used when importing the test, we fallback to `test`.",
+					"description": "The name used when importing the test, we fallback to `test`.",
+					"scope": "resource"
+				},
+				"rmg.test.file.name": {
+					"type": "string",
+					"markdownDescription": "The name given to your test's file, we fallback to the module's name.",
+					"description": "The name given to your test's file, we fallback to the module's name.",
+					"scope": "resource"
+				},
+				"rmg.test.file.extension": {
+					"type": "string",
+					"default": ".test.ts",
+					"markdownDescription": "The type of file you are creating, we fallback to `.test.ts`.",
+					"description": "The type of file you are creating, we fallback to `.test.ts`.",
 					"scope": "resource"
 				}
 			}

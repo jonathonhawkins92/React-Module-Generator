@@ -5,21 +5,13 @@ export enum EOLS {
 }
 
 export enum SettingIds {
-	typescript = "typescript",
-	includeFileExtension = "includeFileExtension",
-	includeStyle = "includeStyle",
-	includeTranslation = "includeTranslation",
-	includeTest = "includeTest",
+	style = "style",
+	translation = "translation",
+	test = "test",
+	barrel = "barrel",
 }
 
-export enum ExportMethod {
-	all = "all",
-	named = "named",
-	default = "default",
-	defaultNamed = "defaultNamed",
-}
-
-export enum ImportMethod {
+export enum ExportType {
 	all = "all",
 	named = "named",
 	default = "default",

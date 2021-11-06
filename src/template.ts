@@ -1,44 +1,59 @@
-import { EOLS, ExportMethod, ImportMethod } from "./enums";
+import { EOLS, ExportType } from "./enums";
 import * as path from "path";
 
 export interface File {
 	get name(): string;
 	get alias(): string;
 	get path(): string;
+	get directories(): string[];
 	get filename(): string;
 	get content(): string;
 	get extension(): string;
+	get exportType(): ExportType;
+	get exportExtension(): boolean;
 }
 
 export interface Settings {
 	readonly endOfLineSequence: EOLS;
-	readonly exportMethod: ExportMethod;
-	readonly importMethod: ImportMethod;
-	readonly includeFileExtension: boolean;
 
 	readonly componentName?: string;
 	readonly componentAlias?: string;
+	readonly componentImports: string[];
 	readonly componentExtension: string;
+	readonly componentExportType: ExportType;
+	readonly componentExportExtension: boolean;
 
-	readonly includeBarrel: boolean;
+	readonly barrel: boolean;
 	readonly barrelName?: string;
 	readonly barrelAlias?: string;
+	readonly barrelImports: string[];
 	readonly barrelExtension: string;
+	readonly barrelExportType: ExportType;
+	readonly barrelExportExtension: boolean;
 
-	readonly includeStyle: boolean;
+	readonly style: boolean;
 	readonly styleName?: string;
 	readonly styleAlias?: string;
+	readonly styleImports: string[];
 	readonly styleExtension: string;
+	readonly styleExportType: ExportType;
+	readonly styleExportExtension: boolean;
 
-	readonly includeTranslation: boolean;
+	readonly translation: boolean;
 	readonly translationName?: string;
 	readonly translationAlias?: string;
+	readonly translationImports: string[];
 	readonly translationExtension: string;
+	readonly translationExportType: ExportType;
+	readonly translationExportExtension: boolean;
 
-	readonly includeTest: boolean;
+	readonly test: boolean;
 	readonly testName?: string;
 	readonly testAlias?: string;
+	readonly testImports: string[];
 	readonly testExtension: string;
+	readonly testExportType: ExportType;
+	readonly testExportExtension: boolean;
 }
 
 export type Dependency = string | FileBase;
@@ -69,12 +84,24 @@ class FileBase implements File {
 		return "";
 	}
 
-	public get extension() {
-		return "";
+	public get directories() {
+		return this.generateDirectories();
 	}
 
 	public get filename() {
 		return "";
+	}
+
+	public get extension() {
+		return "";
+	}
+
+	public get exportType() {
+		return ExportType.all;
+	}
+
+	public get exportExtension() {
+		return false;
 	}
 
 	protected normalizeExtension(extension: string) {
@@ -84,13 +111,40 @@ class FileBase implements File {
 		return `.${extension}`;
 	}
 
+	protected normalizeName(name: string) {
+		const delimiters = { windows: "\\", unix: "/" };
+		if (name.includes(delimiters.unix) && process.platform === "win32") {
+			return name.replace(`/${delimiters.unix}/g"`, delimiters.windows);
+		} else if (
+			name.includes(delimiters.windows) &&
+			process.platform !== "win32"
+		) {
+			return name.replace(`/${delimiters.windows}/g"`, delimiters.unix);
+		}
+		return name;
+	}
+
 	protected removeExtension(extension: string) {
 		const extensionIndex = extension.lastIndexOf(".");
 		return extension.substring(0, extensionIndex);
 	}
 
-	protected generateFilename() {
-		if (this.settings.includeFileExtension) {
+	protected generateDirectories() {
+		const delimiters = { windows: "\\", unix: "/" };
+		let chunks: string[] = [];
+		if (this.name.includes(delimiters.windows)) {
+			chunks = this.name.split(delimiters.windows);
+			return chunks.slice(0, chunks.length - 1);
+		}
+		if (this.name.includes(delimiters.unix)) {
+			chunks = this.name.split(delimiters.unix);
+			return chunks.slice(0, chunks.length - 1);
+		}
+		return chunks;
+	}
+
+	protected generateFilename(fileExtension: boolean) {
+		if (fileExtension) {
 			return `${this.name}${this.extension}`;
 		}
 		return `${this.name}${this.removeExtension(this.extension)}`;
@@ -98,6 +152,36 @@ class FileBase implements File {
 
 	protected generatePath() {
 		return path.join(this.directory, `${this.name}${this.extension}`);
+	}
+
+	protected templateValues(name: string) {
+		return name.replace("{{moduleName}}", this.moduleName);
+	}
+
+	protected relativeParents() {
+		let levels = "./";
+		if (this.directories.length > 0) {
+			levels = "";
+			for (let index = 0; index < this.directories.length; index++) {
+				levels += `../`;
+			}
+		}
+		return levels;
+	}
+
+	protected importNamed(dependency: FileBase) {
+		const relativeParents = this.relativeParents();
+		return `import { ${dependency.alias} } from "${relativeParents}${dependency.filename}";${this.eol}`;
+	}
+
+	protected importAll(dependency: FileBase) {
+		const relativeParents = this.relativeParents();
+		return `import * as ${dependency.alias} from "${relativeParents}${dependency.filename}";${this.eol}`;
+	}
+
+	protected importDefault(dependency: FileBase) {
+		const relativeParents = this.relativeParents();
+		return `import ${dependency.alias} from "${relativeParents}${dependency.filename}";${this.eol}`;
 	}
 }
 
@@ -112,7 +196,11 @@ export class Barrel extends FileBase {
 	}
 
 	public get name() {
-		return this.settings.barrelName || this.moduleName;
+		return this.settings.barrelName
+			? this.normalizeName(
+					this.templateValues(this.settings.barrelName.trim())
+			  )
+			: this.moduleName;
 	}
 
 	public get alias() {
@@ -120,7 +208,7 @@ export class Barrel extends FileBase {
 	}
 
 	public get filename() {
-		return this.generateFilename();
+		return this.generateFilename(this.settings.barrelExportExtension);
 	}
 
 	public get path() {
@@ -131,56 +219,50 @@ export class Barrel extends FileBase {
 		return this.normalizeExtension(this.settings.barrelExtension);
 	}
 
+	public get exportType() {
+		return this.settings.barrelExportType;
+	}
+
+	public get exportExtension() {
+		return this.settings.barrelExportExtension ?? false;
+	}
+
 	public get content() {
 		let result = "";
-		switch (this.settings.exportMethod) {
-			case ExportMethod.all:
-				for (const dependency of this.dependencies) {
-					if (dependency instanceof FileBase) {
+		for (const barrelImport of this.settings.barrelImports) {
+			result += `${barrelImport}${this.eol}`;
+		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
+		for (const dependency of this.dependencies) {
+			if (dependency instanceof FileBase) {
+				switch (dependency.exportType) {
+					case ExportType.all:
 						result += this.exportAll(dependency.filename);
-					}
-					if (typeof dependency === "string") {
-						result += `${dependency}${this.eol}`;
-					}
-				}
-				break;
-			case ExportMethod.named:
-				for (const dependency of this.dependencies) {
-					if (dependency instanceof FileBase) {
+						break;
+					case ExportType.named:
 						result += this.exportNamed(
 							dependency.name,
 							dependency.filename
 						);
-					}
-					if (typeof dependency === "string") {
-						result += `${dependency}${this.eol}`;
-					}
-				}
-				break;
-			case ExportMethod.defaultNamed:
-				for (const dependency of this.dependencies) {
-					if (dependency instanceof FileBase) {
+						break;
+
+					case ExportType.defaultNamed:
 						result += this.exportDefaultNamed(
 							dependency.name,
 							dependency.filename
 						);
-					}
-					if (typeof dependency === "string") {
-						result += `${dependency}${this.eol}`;
-					}
+						break;
+					case ExportType.default:
+					default:
+						result += this.exportDefaultNamed(
+							dependency.name,
+							dependency.filename
+						);
+						break;
 				}
-				break;
-			case ExportMethod.default:
-			default:
-				for (const dependency of this.dependencies) {
-					if (dependency instanceof FileBase) {
-						result += this.exportDefault(dependency.filename);
-					}
-					if (typeof dependency === "string") {
-						result += `${dependency}${this.eol}`;
-					}
-				}
-				break;
+			}
 		}
 		return result;
 	}
@@ -213,7 +295,11 @@ export class Style extends FileBase {
 	}
 
 	public get name() {
-		return this.settings.styleName || this.moduleName;
+		return this.settings.styleName
+			? this.normalizeName(
+					this.templateValues(this.settings.styleName.trim())
+			  )
+			: this.moduleName;
 	}
 
 	public get alias() {
@@ -221,7 +307,7 @@ export class Style extends FileBase {
 	}
 
 	public get filename() {
-		return this.generateFilename();
+		return this.generateFilename(this.settings.styleExportExtension);
 	}
 
 	public get path() {
@@ -232,8 +318,40 @@ export class Style extends FileBase {
 		return this.normalizeExtension(this.settings.styleExtension);
 	}
 
+	public get exportType() {
+		return this.settings.styleExportType;
+	}
+
+	public get exportExtension() {
+		return this.settings.styleExportExtension ?? false;
+	}
+
 	public get content() {
-		return `.root {\n}\n`;
+		let result = "";
+		for (const styleImport of this.settings.styleImports) {
+			result += `${styleImport}${this.eol}`;
+		}
+		for (const dependency of this.dependencies) {
+			if (dependency instanceof FileBase) {
+				switch (dependency.exportType) {
+					case ExportType.all:
+						result += this.importAll(dependency);
+						break;
+					case ExportType.named:
+						result += this.importNamed(dependency);
+						break;
+					case ExportType.default:
+					default:
+						result += this.importDefault(dependency);
+						break;
+				}
+			}
+		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
+		result += `.root {${this.eol}}${this.eol}`;
+		return result;
 	}
 }
 
@@ -248,7 +366,11 @@ export class Translation extends FileBase {
 	}
 
 	public get name() {
-		return this.settings.translationName || this.moduleName;
+		return this.settings.translationName
+			? this.normalizeName(
+					this.templateValues(this.settings.translationName.trim())
+			  )
+			: this.moduleName;
 	}
 
 	public get alias() {
@@ -256,7 +378,7 @@ export class Translation extends FileBase {
 	}
 
 	public get filename() {
-		return this.generateFilename();
+		return this.generateFilename(this.settings.translationExportExtension);
 	}
 
 	public get path() {
@@ -267,8 +389,40 @@ export class Translation extends FileBase {
 		return this.normalizeExtension(this.settings.translationExtension);
 	}
 
+	public get exportType() {
+		return this.settings.translationExportType;
+	}
+
+	public get exportExtension() {
+		return this.settings.translationExportExtension ?? false;
+	}
+
 	public get content() {
-		return `export const translations = {};\n`;
+		let result = "";
+		for (const translationImport of this.settings.translationImports) {
+			result += `${translationImport}${this.eol}`;
+		}
+		for (const dependency of this.dependencies) {
+			if (dependency instanceof FileBase) {
+				switch (dependency.exportType) {
+					case ExportType.all:
+						result += this.importAll(dependency);
+						break;
+					case ExportType.named:
+						result += this.importNamed(dependency);
+						break;
+					case ExportType.default:
+					default:
+						result += this.importDefault(dependency);
+						break;
+				}
+			}
+		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
+		result += `export const ${this.alias} = {};${this.eol}`;
+		return result;
 	}
 }
 
@@ -283,7 +437,11 @@ export class Test extends FileBase {
 	}
 
 	public get name() {
-		return this.settings.testName || this.moduleName;
+		return this.settings.testName
+			? this.normalizeName(
+					this.templateValues(this.settings.testName.trim())
+			  )
+			: this.moduleName;
 	}
 
 	public get alias() {
@@ -291,7 +449,7 @@ export class Test extends FileBase {
 	}
 
 	public get filename() {
-		return this.generateFilename();
+		return this.generateFilename(this.settings.testExportExtension);
 	}
 
 	public get path() {
@@ -302,13 +460,40 @@ export class Test extends FileBase {
 		return this.normalizeExtension(this.settings.testExtension);
 	}
 
+	public get exportType() {
+		return this.settings.testExportType;
+	}
+
+	public get exportExtension() {
+		return this.settings.testExportExtension ?? false;
+	}
+
 	public get content() {
-		const imports = [
-			`import * as RTL from "@testing-library/react";`,
-			`import * as React from "react";`,
-			`import "@testing-library/jest-dom";`,
-		].join(this.eol);
-		return `${imports}${this.eol}${this.eol}test("If it works!", () => {});${this.eol}`;
+		let result = "";
+		for (const testImport of this.settings.testImports) {
+			result += `${testImport}${this.eol}`;
+		}
+		for (const dependency of this.dependencies) {
+			if (dependency instanceof FileBase) {
+				switch (dependency.exportType) {
+					case ExportType.all:
+						result += this.importAll(dependency);
+						break;
+					case ExportType.named:
+						result += this.importNamed(dependency);
+						break;
+					case ExportType.default:
+					default:
+						result += this.importDefault(dependency);
+						break;
+				}
+			}
+		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
+		result += `test("If it works!", () => {});${this.eol}`;
+		return result;
 	}
 }
 
@@ -323,7 +508,11 @@ export class Component extends FileBase {
 	}
 
 	public get name() {
-		return this.settings.componentName || this.moduleName;
+		return this.settings.componentName
+			? this.normalizeName(
+					this.templateValues(this.settings.componentName.trim())
+			  )
+			: this.moduleName;
 	}
 
 	public get alias() {
@@ -331,7 +520,7 @@ export class Component extends FileBase {
 	}
 
 	public get filename() {
-		return this.generateFilename();
+		return this.generateFilename(this.settings.componentExportExtension);
 	}
 
 	public get path() {
@@ -342,24 +531,44 @@ export class Component extends FileBase {
 		return this.normalizeExtension(this.settings.componentExtension);
 	}
 
+	public get exportType() {
+		return this.settings.componentExportType;
+	}
+
+	public get exportExtension() {
+		return this.settings.componentExportExtension ?? false;
+	}
+
 	public get content() {
 		let result = "";
-		switch (this.settings.importMethod) {
-			case ImportMethod.all:
-			case ImportMethod.named:
-				result += this.importNamed();
-				break;
-			case ImportMethod.default:
-			default:
-				result += this.importDefault();
-				break;
+		for (const componentImport of this.settings.componentImports) {
+			result += `${componentImport}${this.eol}`;
 		}
-		switch (this.settings.exportMethod) {
-			case ExportMethod.all:
-			case ExportMethod.named:
+		for (const dependency of this.dependencies) {
+			if (dependency instanceof FileBase) {
+				switch (dependency.exportType) {
+					case ExportType.all:
+						result += this.importAll(dependency);
+						break;
+					case ExportType.named:
+						result += this.importNamed(dependency);
+						break;
+					case ExportType.default:
+					default:
+						result += this.importDefault(dependency);
+						break;
+				}
+			}
+		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
+		switch (this.exportType) {
+			case ExportType.all:
+			case ExportType.named:
 				result += this.exportNamed();
 				break;
-			case ExportMethod.default:
+			case ExportType.default:
 			default:
 				result += this.exportDefault();
 				break;
@@ -367,53 +576,29 @@ export class Component extends FileBase {
 		return result;
 	}
 
-	private importNamed() {
-		let result = ``;
-		for (const dependency of this.dependencies) {
-			if (dependency instanceof FileBase) {
-				result += `import * as ${dependency.alias} from "./${dependency.filename}";${this.eol}`;
-			}
-			if (typeof dependency === "string") {
-				result += `${dependency}${this.eol}`;
-			}
+	private createDiv() {
+		let el = "<div";
+		if (this.settings.test) {
+			el += ` data-testId="${this.moduleName}"`;
 		}
-		return result ? `${result}${this.eol}` : "";
+		if (this.settings.style) {
+			el += ` className={${this.settings.styleAlias || "style"}.root}`;
+		}
+		el += " ></div>";
+		return el;
 	}
 
-	private importDefault() {
-		let result = ``;
-		for (const dependency of this.dependencies) {
-			if (dependency instanceof FileBase) {
-				result += `import ${dependency.alias} from "./${dependency.filename}";${this.eol}`;
-			}
-			if (typeof dependency === "string") {
-				result += `${dependency}${this.eol}`;
-			}
-		}
-		return result ? `${result}${this.eol}` : "";
+	private createRender() {
+		return `\treturn (${this.eol}\t\t${this.createDiv()}${this.eol}\t);`;
 	}
 
 	private exportNamed() {
-		let el = "<div";
-		if (this.settings.includeTest) {
-			el += ` data-testId="${this.moduleName}"`;
-		}
-		if (this.settings.includeStyle) {
-			el += ` className={${this.settings.styleAlias || "style"}.root}`;
-		}
-		el += " />";
-		return `export function ${this.moduleName}() {${this.eol}\treturn ${el};${this.eol}}${this.eol}`;
+		const render = this.createRender();
+		return `export function ${this.moduleName}() {${this.eol}${render}${this.eol}}${this.eol}`;
 	}
 
 	private exportDefault() {
-		let el = "<div";
-		if (this.settings.includeTest) {
-			el += ` data-testId="${this.moduleName}"`;
-		}
-		if (this.settings.includeStyle) {
-			el += ` className={${this.settings.styleAlias || "style"}.root}`;
-		}
-		el += " />";
-		return `export default function ${this.moduleName}() {${this.eol}\treturn ${el};${this.eol}}${this.eol}`;
+		const render = this.createRender();
+		return `export default function ${this.moduleName}() {${this.eol}${render}${this.eol}}${this.eol}`;
 	}
 }

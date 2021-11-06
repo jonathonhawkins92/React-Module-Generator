@@ -3,7 +3,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 
 import * as templates from "./template";
-import { SettingIds, EOLS, ExportMethod, ImportMethod } from "./enums";
+import { SettingIds, EOLS, ExportType } from "./enums";
 
 export interface CommandSettings {
 	template: templates.Settings;
@@ -20,41 +20,85 @@ export default class Command {
 			this.currentUri
 		);
 
+		const typeOfEols = config.get("global.endOfLineSequence", "lf");
 		this.settings = {
 			template: {
-				endOfLineSequence: config.get("endOfLineSequence", EOLS.lf),
-				exportMethod: config.get("exportMethod", ExportMethod.all),
-				importMethod: config.get("importMethod", ImportMethod.named),
-				includeFileExtension: config.get("includeFileExtension", false),
+				endOfLineSequence: EOLS[typeOfEols],
 
-				componentName: config.get("componentName"),
-				componentAlias: config.get("componentAlias"),
-				componentExtension: config.get("componentExtension", ".tsx"),
+				componentImports: config.get("component.imports", []),
+				componentExportType: config.get(
+					"component.export.type",
+					ExportType.all
+				),
+				componentExportExtension: config.get(
+					"component.export.extension",
+					false
+				),
+				componentAlias: config.get("component.export.alias"),
+				componentName: config.get("component.file.name"),
+				componentExtension: config.get(
+					"component.file.extension",
+					".tsx"
+				),
 
-				includeBarrel: config.get("includeBarrel", true),
-				barrelName: config.get("barrelName"),
-				barrelAlias: config.get("barrelAlias"),
-				barrelExtension: config.get("barrelExtension", ".ts"),
+				barrel: config.get("barrel.include", true),
+				barrelImports: config.get("barrel.imports", []),
+				barrelExportType: config.get(
+					"barrel.export.type",
+					ExportType.all
+				),
+				barrelExportExtension: config.get(
+					"barrel.export.extension",
+					false
+				),
+				barrelAlias: config.get("barrel.export.alias"),
+				barrelName: config.get("barrel.file.name"),
+				barrelExtension: config.get("barrel.file.extension", ".ts"),
 
-				includeStyle: config.get("includeStyle", true),
-				styleName: config.get("styleName"),
-				styleAlias: config.get("styleAlias"),
-				styleExtension: config.get("styleExtension", "module.css"),
+				style: config.get("style.include", true),
+				styleImports: config.get("style.imports", []),
+				styleExportType: config.get(
+					"style.export.type",
+					ExportType.all
+				),
+				styleExportExtension: config.get(
+					"style.export.extension",
+					false
+				),
+				styleAlias: config.get("style.export.alias"),
+				styleName: config.get("style.file.name"),
+				styleExtension: config.get(
+					"style.file.extension",
+					"module.css"
+				),
 
-				includeTranslation: config.get("includeTranslation", true),
-				translationName: config.get("translationName"),
-				translationAlias: config.get("translationAlias"),
+				translation: config.get("translation.include", true),
+				translationImports: config.get("translation.imports", []),
+				translationExportType: config.get(
+					"translation.export.type",
+					ExportType.all
+				),
+				translationExportExtension: config.get(
+					"translation.export.extension",
+					false
+				),
+				translationAlias: config.get("translation.export.alias"),
+				translationName: config.get("translation.file.name"),
 				translationExtension: config.get(
-					"translationExtension",
+					"translation.file.extension",
 					"intl.ts"
 				),
 
-				includeTest: config.get("includeTest", true),
-				testName: config.get("testName"),
-				testAlias: config.get("testAlias"),
-				testExtension: config.get("testExtension", "test.ts"),
+				test: config.get("test.include", true),
+				testImports: config.get("test.imports", []),
+				testExportType: config.get("test.export.type", ExportType.all),
+				testExportExtension: config.get("test.export.extension", false),
+				testAlias: config.get("test.export.alias"),
+				testName: config.get("test.file.name"),
+				testExtension: config.get("test.file.extension", "test.ts"),
 			},
 		};
+		console.log(this.settings);
 
 		return this;
 	}
@@ -67,57 +111,72 @@ export default class Command {
 		const { name, settings } = await this.getUserSettings();
 		const moduleName = this.normalizeComponentName(name);
 
-		const style = new templates.Style(
-			directory,
-			moduleName,
-			[],
-			this.settings.template
-		);
-		const translation = new templates.Translation(
-			directory,
-			moduleName,
-			[],
-			this.settings.template
-		);
-		const component = new templates.Component(
-			directory,
-			moduleName,
-			[style, translation],
-			this.settings.template
-		);
-		const test = new templates.Test(
-			directory,
-			moduleName,
-			[component],
-			this.settings.template
-		);
-		const barrel = new templates.Barrel(
-			directory,
-			moduleName,
-			[component],
-			this.settings.template
-		);
-
-		const isBarrel = await fs.stat(barrel.path);
-		if (!isBarrel.isFile()) {
-			throw new Error("Unable to find barrel.");
-		}
-
-		if (settings.includeStyle) {
-			await fs.writeFile(style.path, style.content);
-		}
-
-		if (settings.includeTranslation) {
+		const componentDepends = [];
+		if (settings.translation) {
+			const translation = new templates.Translation(
+				directory,
+				moduleName,
+				[],
+				this.settings.template
+			);
+			if (translation.directories.length > 0) {
+				await this.createDir(directory, translation.directories);
+			}
+			componentDepends.push(translation);
 			await fs.writeFile(translation.path, translation.content);
 		}
 
+		if (settings.style) {
+			const style = new templates.Style(
+				directory,
+				moduleName,
+				[],
+				this.settings.template
+			);
+			if (style.directories.length > 0) {
+				await this.createDir(directory, style.directories);
+			}
+			componentDepends.push(style);
+			await fs.writeFile(style.path, style.content);
+		}
+
+		const component = new templates.Component(
+			directory,
+			moduleName,
+			componentDepends,
+			this.settings.template
+		);
+		if (component.directories.length > 0) {
+			await this.createDir(directory, component.directories);
+		}
 		await fs.writeFile(component.path, component.content);
 
-		if (settings.includeTest) {
+		if (settings.test) {
+			const test = new templates.Test(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			if (test.directories.length > 0) {
+				await this.createDir(directory, test.directories);
+			}
 			await fs.writeFile(test.path, test.content);
 		}
 
-		await fs.writeFile(barrel.path, barrel.content, { flag: "a+" });
+		if (settings.barrel) {
+			const barrel = new templates.Barrel(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			const isBarrel = await fs.stat(barrel.path);
+			if (!isBarrel.isFile()) {
+				throw new Error("Unable to find barrel.");
+			}
+			await fs.writeFile(barrel.path, barrel.content, { flag: "a+" });
+		}
 
 		const doc = await vscode.workspace.openTextDocument(component.path);
 		vscode.window.showTextDocument(doc);
@@ -134,54 +193,73 @@ export default class Command {
 		const directory = path.join(root, dirName);
 		const moduleName = this.normalizeComponentName(name);
 
-		const style = new templates.Style(
-			directory,
-			moduleName,
-			[],
-			this.settings.template
-		);
-		const translation = new templates.Translation(
-			directory,
-			moduleName,
-			[],
-			this.settings.template
-		);
-		const component = new templates.Component(
-			directory,
-			moduleName,
-			[style, translation],
-			this.settings.template
-		);
-		const test = new templates.Test(
-			directory,
-			moduleName,
-			[component],
-			this.settings.template
-		);
-		const barrel = new templates.Barrel(
-			directory,
-			moduleName,
-			[component],
-			this.settings.template
-		);
-
 		await fs.mkdir(directory);
 
-		if (settings.includeStyle) {
-			await fs.writeFile(style.path, style.content);
-		}
-
-		if (settings.includeTranslation) {
+		const componentDepends = [];
+		if (settings.translation) {
+			const translation = new templates.Translation(
+				directory,
+				moduleName,
+				[],
+				this.settings.template
+			);
+			componentDepends.push(translation);
+			if (translation.directories.length > 0) {
+				await this.createDir(directory, translation.directories);
+			}
 			await fs.writeFile(translation.path, translation.content);
 		}
 
+		if (settings.style) {
+			const style = new templates.Style(
+				directory,
+				moduleName,
+				[],
+				this.settings.template
+			);
+			componentDepends.push(style);
+			if (style.directories.length > 0) {
+				await this.createDir(directory, style.directories);
+			}
+			await fs.writeFile(style.path, style.content);
+		}
+
+		const component = new templates.Component(
+			directory,
+			moduleName,
+			componentDepends,
+			this.settings.template
+		);
+		if (component.directories.length > 0) {
+			await this.createDir(directory, component.directories);
+		}
 		await fs.writeFile(component.path, component.content);
 
-		if (settings.includeTest) {
+		if (settings.test) {
+			const test = new templates.Test(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			if (test.directories.length > 0) {
+				await this.createDir(directory, test.directories);
+			}
 			await fs.writeFile(test.path, test.content);
 		}
 
-		await fs.writeFile(barrel.path, barrel.content);
+		if (settings.barrel) {
+			const barrel = new templates.Barrel(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			if (barrel.directories.length > 0) {
+				await this.createDir(directory, barrel.directories);
+			}
+			await fs.writeFile(barrel.path, barrel.content);
+		}
 
 		const doc = await vscode.workspace.openTextDocument(component.path);
 		vscode.window.showTextDocument(doc);
@@ -215,45 +293,45 @@ export default class Command {
 				id: string;
 			}
 		> = {
-			"Include styles": {
+			"Include styles file": {
 				quickPick: {
 					alwaysShow: true,
-					label: "Include styles",
+					label: "Include styles file",
 					description:
 						"Create a style file and import it in your component.",
-					picked: this.settings.template.includeStyle,
+					picked: this.settings.template.style,
 				},
-				id: SettingIds.includeStyle,
+				id: SettingIds.style,
 			},
-			"Include translations": {
+			"Include translations file": {
 				quickPick: {
 					alwaysShow: true,
-					label: "Include translations",
+					label: "Include translations file",
 					description:
 						"Create a translation file and import it in your component.",
-					picked: this.settings.template.includeTranslation,
+					picked: this.settings.template.translation,
 				},
-				id: SettingIds.includeTranslation,
+				id: SettingIds.translation,
 			},
-			"Include tests": {
+			"Include tests file": {
 				quickPick: {
 					alwaysShow: true,
-					label: "Include tests",
+					label: "Include tests file",
 					description:
 						"Create a test file and import your component.",
-					picked: this.settings.template.includeTest,
+					picked: this.settings.template.test,
 				},
-				id: SettingIds.includeTest,
+				id: SettingIds.test,
 			},
-			"Include file extensions": {
+			"Include barrel file": {
 				quickPick: {
 					alwaysShow: true,
-					label: "Include file extensions",
+					label: "Include barrel file",
 					description:
-						"Add the files extension to your barrel files export.",
-					picked: this.settings.template.includeFileExtension,
+						"Add a file to expose your modules public resources.",
+					picked: this.settings.template.barrel,
 				},
-				id: SettingIds.includeFileExtension,
+				id: SettingIds.barrel,
 			},
 		};
 		const settingsQuickPicks = Object.values(settingsMap).map(
@@ -302,21 +380,12 @@ export default class Command {
 			throw new Error("Invalid module name");
 		}
 		const settings = {
-			[SettingIds.typescript]: selectedIds.includes(
-				SettingIds.typescript
+			[SettingIds.style]: selectedIds.includes(SettingIds.style),
+			[SettingIds.translation]: selectedIds.includes(
+				SettingIds.translation
 			),
-			[SettingIds.includeFileExtension]: selectedIds.includes(
-				SettingIds.includeFileExtension
-			),
-			[SettingIds.includeStyle]: selectedIds.includes(
-				SettingIds.includeStyle
-			),
-			[SettingIds.includeTranslation]: selectedIds.includes(
-				SettingIds.includeTranslation
-			),
-			[SettingIds.includeTest]: selectedIds.includes(
-				SettingIds.includeTest
-			),
+			[SettingIds.test]: selectedIds.includes(SettingIds.test),
+			[SettingIds.barrel]: selectedIds.includes(SettingIds.barrel),
 		};
 		return { name, settings };
 	}
@@ -329,6 +398,15 @@ export default class Command {
 			throw new Error("Unable to determine root");
 		}
 		return value;
+	}
+
+	private async createDir(parentDir: string, dirs: string[]) {
+		let prevDir = parentDir;
+		for (const dir of dirs) {
+			const nextDir = path.join(prevDir, dir);
+			await fs.mkdir(nextDir);
+			prevDir = nextDir;
+		}
 	}
 
 	private async getDir() {
