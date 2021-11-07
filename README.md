@@ -8,14 +8,58 @@ Create modules, what is a module? A module is a self contained component that ex
 
 ## Extension Settings
 
--   `rmg.typescript`: Enable/disable TypeScript file generation.
--   `rmg.includeFileExtension`: Enable/disable file extension in barrel files export.
--   `rmg.includeStyle`: Enable/disable the addition of a style file and importing of said file in component.
--   `rmg.includeTranslation`: Enable/disable the addition of a translation file and importing of said file in component.
--   `rmg.includeTest`: Enable/disable the addition of a translation file and importing of said file in component.
--   `rmg.exportType`: What type of export you want to use https://developer.mozilla.org/en-US/docs/web/javascript/reference/statements/export.
--   `rmg.rootDirectory`: The location that we will create your new module in via the command pallet, without this we will attempt to fallback to the workspace root.
--   `rmg.endOfLineSequence`: `lf | crlf | cr` What style of end of line character we will use.
+### global
+
+-   `rmg.global.endOfLineSequence`: `lf | crlf | cr` What style of end of line character we will use.
+
+### component
+
+-   `rmg.component.imports`: A list of imports, eg `import * as React from \"react\";`
+-   `rmg.component.export.type`: How we will export and then import your file.
+-   `rmg.component.export.extension`: Enable/disable the file extension when importing.
+-   `rmg.component.export.alias`: The name used when importing the component, we fallback to component.
+-   `rmg.component.file.name`: The name given to your component's file, we fallback to the module's name.
+-   `rmg.component.file.extension`: The type of file you are creating, we fallback to `.tsx`.
+
+### barrel
+
+-   `rmg.barrel.include`: Enable/disable the addition of a barrel file.
+-   `rmg.barrel.imports`: A list of imports, eg `import * as React from \"react\";`
+-   `rmg.barrel.export.type`: How we will export and then import your file.
+-   `rmg.barrel.export.extension`: Enable/disable the file extension when importing.
+-   `rmg.barrel.export.alias`: The name used when importing the barrel, we fallback to `barrel`.
+-   `rmg.barrel.file.name`: The name given to your barrel's file, we fallback to `index` then to the module's name.
+-   `rmg.barrel.file.extension`: The type of file you are creating, we fallback to `.ts`.
+
+### style
+
+-   `rmg.style.include`: Enable/disable the addition of a style file and importing of said file in component.
+-   `rmg.style.imports`: A list of imports, eg `import * as React from \"react\";`
+-   `rmg.style.export.type`: How we will export and then import your file.
+-   `rmg.style.export.extension`: Enable/disable the file extension when importing.
+-   `rmg.style.export.alias`: The name used when importing the style, we fallback to `style`.
+-   `rmg.style.file.name`: The name given to your style's file, we fallback to the module's name.
+-   `rmg.style.file.extension`: The type of file you are creating, we fallback to `.module.css`.
+
+### translation
+
+-   `rmg.translation.include`: Enable/disable the addition of a translation file and importing of said file in component.
+-   `rmg.translation.imports`: A list of imports, eg `import * as React from \"react\";`
+-   `rmg.translation.export.type`: How we will export and then import your file.
+-   `rmg.translation.export.extension`: Enable/disable the file extension when importing.
+-   `rmg.translation.export.alias`: The name used when importing the translation, we fallback to `translation`.
+-   `rmg.translation.file.name`: The name given to your translation's file, we fallback to the module's name.
+-   `rmg.translation.file.extension`: The type of file you are creating, we fallback to `.intl.ts`.
+
+### test
+
+-   `rmg.test.include`: Enable/disable the addition of a test file.
+-   `rmg.test.imports`: A list of imports, eg `import * as React from \"react\";`
+-   `rmg.test.export.type`: How we will export and then import your file.
+-   `rmg.test.export.extension`: Enable/disable the file extension when importing.
+-   `rmg.test.export.alias`: The name used when importing the test, we fallback to `test`.
+-   `rmg.test.file.name`: The name given to your test's file, we fallback to the module's name.
+-   `rmg.test.file.extension`: The type of file you are creating, we fallback to `.test.ts`.root.
 
 ## Known Issues
 
@@ -23,31 +67,7 @@ Nothing yet 🤞
 
 ## Release Notes
 
-### 0.0.1
-
-Initial release of RMG, features added:
-
--   cmd | crtl + p, RMG: Create, which will ask you your new modules name and which directory to place it.
--   explorer context menu, RMG: Create, which will ask you your new modules name and will place it in the directory of the file or directory you selected.
--   explorer context menu on an existing module, RMG: Add, which will ask you your new modules name and add it to the existing module.
-
-### 0.1.0
-
-Minor bump due to removal of settings, in future this will be a Major bump but until we hit `1.0.0` breaking changes are more likely.
-
--   removed rmg.createExplorer in favour of rmg.create
--   removed rmg.addExplorer in favour of rmg.add
--   removed defaultModuleName
--   removed defaultImports in favour of extendable template methods
--   added auto opening created file
-    -   might add to settings
--   added includeStyle setting
--   added includeTranslation setting
--   added includeTest setting
--   added run time setting checkboxes
--   added folder picker for use outside of explorer
-    -   I might always show this in future if requested or if it annoys me!
--   renamed fileExtensions to includeFileExtension
+[Change Log](/CHANGELOG.md)
 
 ---
 

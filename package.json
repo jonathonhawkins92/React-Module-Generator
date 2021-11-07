@@ -1,7 +1,6 @@
 {
 	"name": "rmg",
 	"displayName": "react-module-generator",
-	"markdownDescription": "generate react modules 🤯",
 	"description": "generate react modules 🤯",
 	"icon": "images/logo.png",
 	"galleryBanner": {
