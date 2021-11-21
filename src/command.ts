@@ -60,39 +60,26 @@ const relationships: Relationships = {
 	},
 };
 
+const MAX_DEPTH = 99;
 function relationshipPipeline(relationships: Relationships) {
-	const lookup: Record<string, { depth: number; index: number }> = {};
-	const tree: Node[][] = [[]];
+	const lookup: Record<string, number> = {};
 
 	function depthFinder(node: Node, depth = 1) {
-		// move already found nodes to the current depth
+		// TODO: replace with tarjan's algorithm
+		if (depth > MAX_DEPTH) {
+			console.error(`Max depth of ${MAX_DEPTH} reached.`);
+			return;
+		}
+
 		if (lookup[node.name]) {
-			const ref = lookup[node.name];
-			if (ref.depth === depth) {
-				// already processed
-				console.warn("Already processed:", node.name);
+			const refDepth = lookup[node.name] ?? 0;
+			if (refDepth > depth) {
+				// Already processed
 				return;
-			} else {
-				console.warn(
-					"Moving:",
-					node.name,
-					"at depth:",
-					ref.depth,
-					"to depth:",
-					depth
-				);
-				tree[ref.depth] = tree[ref.depth].slice(ref.index, 1);
 			}
 		}
 
-		// initialize tree at the current depth
-		if (typeof tree[depth] === "undefined") {
-			tree[depth] = [];
-		}
-
-		console.log(tree[depth], node);
-		lookup[node.name] = { depth, index: tree[depth].length };
-		tree[depth].push(node);
+		lookup[node.name] = depth;
 
 		if (node.children.length > 0) {
 			for (const child of node.children) {
@@ -104,8 +91,7 @@ function relationshipPipeline(relationships: Relationships) {
 
 	for (const entry of relationships.entrypoints) {
 		const node = relationships.nodes[entry];
-		lookup[node.name] = { depth: 0, index: tree[0].length };
-		tree[0].push(node);
+		lookup[node.name] = 0;
 		if (node.children.length > 0) {
 			for (const child of node.children) {
 				const nextNode = relationships.nodes[child];
@@ -113,7 +99,21 @@ function relationshipPipeline(relationships: Relationships) {
 			}
 		}
 	}
-	console.log(tree, lookup);
+
+	const result: string[][] = [];
+	for (const [name, index] of Object.entries(lookup)) {
+		if (!result[index]) {
+			result[index] = [];
+		}
+		result[index].push(name);
+	}
+
+	for (let depth = result.length - 1; depth >= 0; depth--) {
+		const entries = result[depth];
+		for (const entry of entries) {
+			console.log(depth, entry);
+		}
+	}
 }
 
 relationshipPipeline(relationships);
