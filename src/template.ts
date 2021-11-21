@@ -58,7 +58,7 @@ export interface Settings {
 
 export type Dependency = string | FileBase;
 
-class FileBase implements File {
+export class FileBase implements File {
 	protected readonly eol: EOLS;
 	constructor(
 		protected readonly directory: string,
