@@ -60,20 +60,11 @@ class Validator {
 	public static instance = new Validator();
 
 	public assertTemplate(template: unknown) {
-		if (!this.assertPossibleTemplate(template)) {
-			console.log("root");
-			return false;
-		}
-		if (!this.assertTemplateBase(template)) {
-			console.log("base");
-			return false;
-		}
-
-		if (!this.assertTemplateCore(template)) {
-			console.log("core");
-			return false;
-		}
-		return true;
+		return (
+			this.assertPossibleTemplate(template) &&
+			this.assertTemplateBase(template) &&
+			this.assertTemplateCore(template)
+		);
 	}
 
 	private isValid(template: PossibleTemplate, key: Properties, type: string) {
@@ -101,30 +92,30 @@ class Validator {
 	}
 
 	private assertTemplateBase(template: PossibleTemplate) {
-		return !(
-			!this.isValid(template, Properties.directory, "string") ||
-			!this.isValid(template, Properties.moduleName, "string") ||
-			!this.isValidDependencies(template, Properties.dependencies) ||
-			!this.isValidSetting(template, Properties.settings) ||
-			!this.isValid(template, Properties.eol, "string")
+		return (
+			this.isValid(template, Properties.directory, "string") &&
+			this.isValid(template, Properties.moduleName, "string") &&
+			this.isValidDependencies(template, Properties.dependencies) &&
+			this.isValidSetting(template, Properties.settings) &&
+			this.isValid(template, Properties.eol, "string")
 		);
 	}
 
 	private assertTemplateCore(
 		template: PossibleTemplate
 	): template is Template {
-		return !(
-			!this.isValid(template, Properties.name, "string") ||
-			!this.isValid(template, Properties.alias, "string") ||
-			!this.isValid(template, Properties.path, "string") ||
-			!this.isValid(template, Properties.content, "string") ||
-			!this.isValid(template, Properties.filename, "string") ||
-			!this.isValid(template, Properties.extension, "string") ||
-			!this.isValid(template, Properties.exportType, "string") ||
-			!this.isValid(template, Properties.exportExtension, "boolean") ||
-			!Array.isArray(template.directories) ||
-			template.directories.some(
-				(directory) => typeof directory !== "string"
+		return (
+			this.isValid(template, Properties.name, "string") &&
+			this.isValid(template, Properties.alias, "string") &&
+			this.isValid(template, Properties.path, "string") &&
+			this.isValid(template, Properties.content, "string") &&
+			this.isValid(template, Properties.filename, "string") &&
+			this.isValid(template, Properties.extension, "string") &&
+			this.isValid(template, Properties.exportType, "string") &&
+			this.isValid(template, Properties.exportExtension, "boolean") &&
+			Array.isArray(template.directories) &&
+			template.directories.every(
+				(directory) => typeof directory === "string"
 			)
 		);
 	}
