@@ -39,7 +39,7 @@ interface PossibleTemplate {
 	[Properties.exportExtension]?: boolean;
 }
 
-type Template = Required<PossibleTemplate>;
+export type Template = Required<PossibleTemplate>;
 
 class Validator {
 	public static instance = new Validator();

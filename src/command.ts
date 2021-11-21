@@ -14,6 +14,110 @@ function validationError(name: string) {
 	vscode.window.showErrorMessage(`Template ${name}, is not valid.`);
 }
 
+interface Node {
+	template: unknown;
+	name: string;
+	children: string[];
+}
+
+interface Relationships {
+	entrypoints: string[];
+	nodes: Record<string, Node>;
+}
+const relationships: Relationships = {
+	entrypoints: ["barrel", "test", "example"],
+	nodes: {
+		barrel: {
+			template: templates.Barrel,
+			name: "barrel",
+			children: ["component"],
+		},
+		test: {
+			template: templates.Test,
+			name: "test",
+			children: ["component"],
+		},
+		component: {
+			template: templates.Component,
+			name: "component",
+			children: ["style", "translation"],
+		},
+		style: {
+			template: templates.Style,
+			name: "style",
+			children: [],
+		},
+		translation: {
+			template: templates.Translation,
+			name: "translation",
+			children: [],
+		},
+		example: {
+			template: templates.Translation,
+			name: "example",
+			children: ["translation"],
+		},
+	},
+};
+
+function relationshipPipeline(relationships: Relationships) {
+	const lookup: Record<string, { depth: number; index: number }> = {};
+	const tree: Node[][] = [[]];
+
+	function depthFinder(node: Node, depth = 1) {
+		// move already found nodes to the current depth
+		if (lookup[node.name]) {
+			const ref = lookup[node.name];
+			if (ref.depth === depth) {
+				// already processed
+				console.warn("Already processed:", node.name);
+				return;
+			} else {
+				console.warn(
+					"Moving:",
+					node.name,
+					"at depth:",
+					ref.depth,
+					"to depth:",
+					depth
+				);
+				tree[ref.depth] = tree[ref.depth].slice(ref.index, 1);
+			}
+		}
+
+		// initialize tree at the current depth
+		if (typeof tree[depth] === "undefined") {
+			tree[depth] = [];
+		}
+
+		console.log(tree[depth], node);
+		lookup[node.name] = { depth, index: tree[depth].length };
+		tree[depth].push(node);
+
+		if (node.children.length > 0) {
+			for (const child of node.children) {
+				const nextNode = relationships.nodes[child];
+				depthFinder(nextNode, depth + 1);
+			}
+		}
+	}
+
+	for (const entry of relationships.entrypoints) {
+		const node = relationships.nodes[entry];
+		lookup[node.name] = { depth: 0, index: tree[0].length };
+		tree[0].push(node);
+		if (node.children.length > 0) {
+			for (const child of node.children) {
+				const nextNode = relationships.nodes[child];
+				depthFinder(nextNode);
+			}
+		}
+	}
+	console.log(tree, lookup);
+}
+
+relationshipPipeline(relationships);
+
 export default class Command {
 	private settings: CommandSettings;
 	private currentUri?: vscode.Uri;
