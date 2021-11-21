@@ -4,9 +4,14 @@ import * as path from "path";
 
 import * as templates from "./template";
 import { SettingIds, EOLS, ExportType } from "./enums";
+import Validator from "./validator";
 
 export interface CommandSettings {
 	template: templates.Settings;
+}
+
+function validationError(name: string) {
+	vscode.window.showErrorMessage(`Template ${name}, is not valid.`);
 }
 
 export default class Command {
@@ -98,7 +103,6 @@ export default class Command {
 				testExtension: config.get("test.file.extension", "test.ts"),
 			},
 		};
-		console.log(this.settings);
 
 		return this;
 	}
@@ -111,33 +115,34 @@ export default class Command {
 		const { name, settings } = await this.getUserSettings();
 		const moduleName = this.normalizeComponentName(name);
 
+		// Create module
 		const componentDepends = [];
+		let translation;
 		if (settings.translation) {
-			const translation = new templates.Translation(
+			translation = new templates.Translation(
 				directory,
 				moduleName,
 				[],
 				this.settings.template
 			);
-			if (translation.directories.length > 0) {
-				await this.createDir(directory, translation.directories);
+			if (!Validator.assertTemplate(translation)) {
+				return validationError("translation");
 			}
 			componentDepends.push(translation);
-			await fs.writeFile(translation.path, translation.content);
 		}
 
+		let style;
 		if (settings.style) {
-			const style = new templates.Style(
+			style = new templates.Style(
 				directory,
 				moduleName,
 				[],
 				this.settings.template
 			);
-			if (style.directories.length > 0) {
-				await this.createDir(directory, style.directories);
+			if (!Validator.assertTemplate(style)) {
+				return validationError("style");
 			}
 			componentDepends.push(style);
-			await fs.writeFile(style.path, style.content);
 		}
 
 		const component = new templates.Component(
@@ -146,31 +151,64 @@ export default class Command {
 			componentDepends,
 			this.settings.template
 		);
-		if (component.directories.length > 0) {
-			await this.createDir(directory, component.directories);
+		if (!Validator.assertTemplate(component)) {
+			return validationError("component");
 		}
-		await fs.writeFile(component.path, component.content);
 
+		let test;
 		if (settings.test) {
-			const test = new templates.Test(
+			test = new templates.Test(
 				directory,
 				moduleName,
 				[component],
 				this.settings.template
 			);
+			if (!Validator.assertTemplate(test)) {
+				return validationError("test");
+			}
+		}
+
+		let barrel;
+		if (settings.barrel) {
+			barrel = new templates.Barrel(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			if (!Validator.assertTemplate(barrel)) {
+				return validationError("barrel");
+			}
+		}
+
+		// Write module
+		if (settings.translation && translation) {
+			if (translation.directories.length > 0) {
+				await this.createDir(directory, translation.directories);
+			}
+			await fs.writeFile(translation.path, translation.content);
+		}
+
+		if (settings.style && style) {
+			if (style.directories.length > 0) {
+				await this.createDir(directory, style.directories);
+			}
+			await fs.writeFile(style.path, style.content);
+		}
+
+		await fs.writeFile(component.path, component.content);
+		if (component.directories.length > 0) {
+			await this.createDir(directory, component.directories);
+		}
+
+		if (settings.test && test) {
 			if (test.directories.length > 0) {
 				await this.createDir(directory, test.directories);
 			}
 			await fs.writeFile(test.path, test.content);
 		}
 
-		if (settings.barrel) {
-			const barrel = new templates.Barrel(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
+		if (settings.barrel && barrel) {
 			const isBarrel = await fs.stat(barrel.path);
 			if (!isBarrel.isFile()) {
 				throw new Error("Unable to find barrel.");
@@ -193,35 +231,34 @@ export default class Command {
 		const directory = path.join(root, dirName);
 		const moduleName = this.normalizeComponentName(name);
 
-		await fs.mkdir(directory);
-
+		// Create module
 		const componentDepends = [];
+		let translation;
 		if (settings.translation) {
-			const translation = new templates.Translation(
+			translation = new templates.Translation(
 				directory,
 				moduleName,
 				[],
 				this.settings.template
 			);
-			componentDepends.push(translation);
-			if (translation.directories.length > 0) {
-				await this.createDir(directory, translation.directories);
+			if (!Validator.assertTemplate(translation)) {
+				return validationError("translation");
 			}
-			await fs.writeFile(translation.path, translation.content);
+			componentDepends.push(translation);
 		}
 
+		let style;
 		if (settings.style) {
-			const style = new templates.Style(
+			style = new templates.Style(
 				directory,
 				moduleName,
 				[],
 				this.settings.template
 			);
-			componentDepends.push(style);
-			if (style.directories.length > 0) {
-				await this.createDir(directory, style.directories);
+			if (!Validator.assertTemplate(style)) {
+				return validationError("style");
 			}
-			await fs.writeFile(style.path, style.content);
+			componentDepends.push(style);
 		}
 
 		const component = new templates.Component(
@@ -230,31 +267,73 @@ export default class Command {
 			componentDepends,
 			this.settings.template
 		);
-		if (component.directories.length > 0) {
-			await this.createDir(directory, component.directories);
+		if (!Validator.assertTemplate(component)) {
+			return validationError("component");
 		}
-		await fs.writeFile(component.path, component.content);
 
+		let test;
 		if (settings.test) {
-			const test = new templates.Test(
+			test = new templates.Test(
 				directory,
 				moduleName,
 				[component],
 				this.settings.template
 			);
+			if (!Validator.assertTemplate(test)) {
+				return validationError("test");
+			}
+		}
+
+		let barrel;
+		if (settings.barrel) {
+			barrel = new templates.Barrel(
+				directory,
+				moduleName,
+				[component],
+				this.settings.template
+			);
+			if (!Validator.assertTemplate(barrel)) {
+				return validationError("barrel");
+			}
+		}
+
+		// Write module
+		await fs.mkdir(directory);
+
+		if (settings.translation && translation) {
+			if (translation.directories.length > 0) {
+				await this.createDir(directory, translation.directories);
+			}
+			await fs.writeFile(translation.path, translation.content);
+		}
+
+		if (settings.style && style) {
+			if (style.directories.length > 0) {
+				await this.createDir(directory, style.directories);
+			}
+			await fs.writeFile(style.path, style.content);
+		}
+
+		await fs.writeFile(component.path, component.content);
+		if (component.directories.length > 0) {
+			await this.createDir(directory, component.directories);
+		}
+
+		if (settings.test && test) {
+			console.log({
+				name: test.name,
+				directories: test.directories,
+				directory,
+				path: test.path,
+				content: test.content,
+			});
 			if (test.directories.length > 0) {
 				await this.createDir(directory, test.directories);
 			}
 			await fs.writeFile(test.path, test.content);
 		}
 
-		if (settings.barrel) {
-			const barrel = new templates.Barrel(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
+		if (settings.barrel && barrel) {
 			if (barrel.directories.length > 0) {
 				await this.createDir(directory, barrel.directories);
 			}
@@ -407,7 +486,7 @@ export default class Command {
 			try {
 				const prevDirStats = await fs.stat(prevDir);
 				if (prevDirStats.isDirectory()) {
-			await fs.mkdir(nextDir);
+					await fs.mkdir(nextDir);
 				}
 			} catch (e) {
 				if (e instanceof Error && e.message.includes("ENOENT")) {
