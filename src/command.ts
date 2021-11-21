@@ -67,7 +67,9 @@ function relationshipPipeline(relationships: Relationships) {
 	function depthFinder(node: Node, depth = 1) {
 		// TODO: replace with tarjan's algorithm
 		if (depth > MAX_DEPTH) {
-			console.error(`Max depth of ${MAX_DEPTH} reached.`);
+			console.error(
+				`Max depth of ${MAX_DEPTH} reached, there is probably a circular reference in your files relationships.`
+			);
 			return;
 		}
 
