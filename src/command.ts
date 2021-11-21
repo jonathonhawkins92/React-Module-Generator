@@ -4,7 +4,8 @@ import * as path from "path";
 
 import * as templates from "./template";
 import { SettingIds, EOLS, ExportType } from "./enums";
-import Validator from "./validator";
+import Validator, { Template } from "./validator";
+import { mainModule } from "process";
 
 export interface CommandSettings {
 	template: templates.Settings;
@@ -15,9 +16,11 @@ function validationError(name: string) {
 }
 
 interface Node {
-	template: unknown;
+	instance: Template | null;
+	template: any;
 	name: string;
 	children: string[];
+	open?: boolean;
 }
 
 interface Relationships {
@@ -25,100 +28,41 @@ interface Relationships {
 	nodes: Record<string, Node>;
 }
 const relationships: Relationships = {
-	entrypoints: ["barrel", "test", "example"],
+	entrypoints: ["barrel", "test"],
 	nodes: {
 		barrel: {
+			instance: null,
 			template: templates.Barrel,
 			name: "barrel",
 			children: ["component"],
 		},
 		test: {
+			instance: null,
 			template: templates.Test,
 			name: "test",
 			children: ["component"],
 		},
 		component: {
+			instance: null,
 			template: templates.Component,
 			name: "component",
 			children: ["style", "translation"],
+			open: true,
 		},
 		style: {
+			instance: null,
 			template: templates.Style,
 			name: "style",
 			children: [],
 		},
 		translation: {
+			instance: null,
 			template: templates.Translation,
 			name: "translation",
 			children: [],
 		},
-		example: {
-			template: templates.Translation,
-			name: "example",
-			children: ["translation"],
-		},
 	},
 };
-
-const MAX_DEPTH = 99;
-function relationshipPipeline(relationships: Relationships) {
-	const lookup: Record<string, number> = {};
-
-	function depthFinder(node: Node, depth = 1) {
-		// TODO: replace with tarjan's algorithm
-		if (depth > MAX_DEPTH) {
-			console.error(
-				`Max depth of ${MAX_DEPTH} reached, there is probably a circular reference in your files relationships.`
-			);
-			return;
-		}
-
-		if (lookup[node.name]) {
-			const refDepth = lookup[node.name] ?? 0;
-			if (refDepth > depth) {
-				// Already processed
-				return;
-			}
-		}
-
-		lookup[node.name] = depth;
-
-		if (node.children.length > 0) {
-			for (const child of node.children) {
-				const nextNode = relationships.nodes[child];
-				depthFinder(nextNode, depth + 1);
-			}
-		}
-	}
-
-	for (const entry of relationships.entrypoints) {
-		const node = relationships.nodes[entry];
-		lookup[node.name] = 0;
-		if (node.children.length > 0) {
-			for (const child of node.children) {
-				const nextNode = relationships.nodes[child];
-				depthFinder(nextNode);
-			}
-		}
-	}
-
-	const result: string[][] = [];
-	for (const [name, index] of Object.entries(lookup)) {
-		if (!result[index]) {
-			result[index] = [];
-		}
-		result[index].push(name);
-	}
-
-	for (let depth = result.length - 1; depth >= 0; depth--) {
-		const entries = result[depth];
-		for (const entry of entries) {
-			console.log(depth, entry);
-		}
-	}
-}
-
-relationshipPipeline(relationships);
 
 export default class Command {
 	private settings: CommandSettings;
@@ -326,6 +270,58 @@ export default class Command {
 		vscode.window.showTextDocument(doc);
 	}
 
+	private generateDepthMap(relationships: Relationships) {
+		const MAX_DEPTH = 99;
+		const lookup: Record<string, number> = {};
+
+		function depthFinder(children: string[], depth = 1) {
+			// TODO: replace with tarjan's algorithm
+			if (depth > MAX_DEPTH) {
+				console.error(
+					`Max depth of ${MAX_DEPTH} reached, there is probably a circular reference in your files relationships.`
+				);
+				return;
+			}
+
+			if (children.length <= 0) {
+				return;
+			}
+
+			for (const child of children) {
+				const node = relationships.nodes[child];
+
+				if (lookup[node.name]) {
+					const refDepth = lookup[node.name] ?? 0;
+					if (refDepth > depth) {
+						// Already processed
+						return;
+					}
+				}
+
+				lookup[node.name] = depth;
+
+				const nextNode = relationships.nodes[child];
+				depthFinder(nextNode.children, depth + 1);
+			}
+		}
+
+		for (const entry of relationships.entrypoints) {
+			const node = relationships.nodes[entry];
+			lookup[node.name] = 0;
+			depthFinder(node.children);
+		}
+
+		const result: string[][] = [];
+		for (const [name, index] of Object.entries(lookup)) {
+			if (!result[index]) {
+				result[index] = [];
+			}
+			result[index].push(name);
+		}
+
+		return result;
+	}
+
 	public async create(targetDir?: string) {
 		if (!targetDir) {
 			targetDir = await this.getDir();
@@ -337,116 +333,67 @@ export default class Command {
 		const directory = path.join(root, dirName);
 		const moduleName = this.normalizeComponentName(name);
 
-		// Create module
-		const componentDepends = [];
-		let translation;
-		if (settings.translation) {
-			translation = new templates.Translation(
-				directory,
-				moduleName,
-				[],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(translation)) {
-				return validationError("translation");
-			}
-			componentDepends.push(translation);
-		}
+		const relationshipDepths = this.generateDepthMap(relationships);
+		let openFilePath: null | string = null;
 
-		let style;
-		if (settings.style) {
-			style = new templates.Style(
-				directory,
-				moduleName,
-				[],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(style)) {
-				return validationError("style");
-			}
-			componentDepends.push(style);
-		}
+		// max depth down
+		// map node relationships
+		for (let depth = relationshipDepths.length - 1; depth >= 0; depth--) {
+			const entries = relationshipDepths[depth];
+			for (const entry of entries) {
+				const node = relationships.nodes[entry];
+				const children = [];
+				for (const childName of node.children) {
+					const child = relationships.nodes[childName].instance;
+					if (child === null) {
+						continue;
+					}
+					children.push(child);
+				}
 
-		const component = new templates.Component(
-			directory,
-			moduleName,
-			componentDepends,
-			this.settings.template
-		);
-		if (!Validator.assertTemplate(component)) {
-			return validationError("component");
-		}
-
-		let test;
-		if (settings.test) {
-			test = new templates.Test(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(test)) {
-				return validationError("test");
+				const template = new node.template(
+					directory,
+					moduleName,
+					children,
+					this.settings.template
+				);
+				if (!Validator.assertTemplate(template)) {
+					return validationError(template.name);
+				}
+				relationships.nodes[entry].instance = template;
 			}
 		}
 
-		let barrel;
-		if (settings.barrel) {
-			barrel = new templates.Barrel(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(barrel)) {
-				return validationError("barrel");
-			}
-		}
-
-		// Write module
 		await fs.mkdir(directory);
 
-		if (settings.translation && translation) {
-			if (translation.directories.length > 0) {
-				await this.createDir(directory, translation.directories);
+		// 0 up
+		// create files
+		for (const entries of relationshipDepths) {
+			for (const entry of entries) {
+				const { instance, name, open } = relationships.nodes[entry];
+				if (!Validator.assertTemplate(instance)) {
+					return validationError(name);
+				}
+
+				if (instance === null) {
+					return validationError(name);
+				}
+
+				if (instance.directories.length > 0) {
+					await this.createDir(directory, instance.directories);
+				}
+				await fs.writeFile(instance.path, instance.content);
+
+				if (open) {
+					openFilePath = instance.path;
+				}
 			}
-			await fs.writeFile(translation.path, translation.content);
 		}
 
-		if (settings.style && style) {
-			if (style.directories.length > 0) {
-				await this.createDir(directory, style.directories);
-			}
-			await fs.writeFile(style.path, style.content);
+		if (openFilePath === null) {
+			return;
 		}
-
-		await fs.writeFile(component.path, component.content);
-		if (component.directories.length > 0) {
-			await this.createDir(directory, component.directories);
-		}
-
-		if (settings.test && test) {
-			console.log({
-				name: test.name,
-				directories: test.directories,
-				directory,
-				path: test.path,
-				content: test.content,
-			});
-			if (test.directories.length > 0) {
-				await this.createDir(directory, test.directories);
-			}
-			await fs.writeFile(test.path, test.content);
-		}
-
-		if (settings.barrel && barrel) {
-			if (barrel.directories.length > 0) {
-				await this.createDir(directory, barrel.directories);
-			}
-			await fs.writeFile(barrel.path, barrel.content);
-		}
-
-		const doc = await vscode.workspace.openTextDocument(component.path);
+		const doc = await vscode.workspace.openTextDocument(openFilePath);
 		vscode.window.showTextDocument(doc);
 	}
 
