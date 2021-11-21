@@ -1,23 +1,6 @@
 import { ExportType } from "./enums";
 import { FileBase, Settings } from "./template";
 
-interface Template {
-	directory: string;
-	moduleName: string;
-	dependencies: (string | FileBase)[];
-	settings: Settings;
-	eol: string;
-	name: string;
-	alias: string;
-	path: string;
-	directories: string[];
-	filename: string;
-	content: string;
-	extension: string;
-	exportType: ExportType;
-	exportExtension: boolean;
-}
-
 enum Properties {
 	// base
 	directory = "directory",
@@ -55,6 +38,8 @@ interface PossibleTemplate {
 	[Properties.exportType]?: ExportType;
 	[Properties.exportExtension]?: boolean;
 }
+
+type Template = Required<PossibleTemplate>;
 
 class Validator {
 	public static instance = new Validator();
