@@ -404,7 +404,16 @@ export default class Command {
 		let prevDir = parentDir;
 		for (const dir of dirs) {
 			const nextDir = path.join(prevDir, dir);
+			try {
+				const prevDirStats = await fs.stat(prevDir);
+				if (prevDirStats.isDirectory()) {
 			await fs.mkdir(nextDir);
+				}
+			} catch (e) {
+				if (e instanceof Error && e.message.includes("ENOENT")) {
+					console.log("[command.createDir]", e);
+				}
+			}
 			prevDir = nextDir;
 		}
 	}
