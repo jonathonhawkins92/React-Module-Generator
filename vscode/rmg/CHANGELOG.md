@@ -1,5 +1,9 @@
 # Change Log
 
+### 0.2.5
+
+-   Moved project to mono-repo structure.
+
 ### 0.2.4
 
 -   Abstracting VS Code specific code and generally tidying up shop.

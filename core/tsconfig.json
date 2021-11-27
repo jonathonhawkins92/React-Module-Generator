@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"baseUrl": "./",
+		"rootDir": "./src",
+		"outDir": "dist",
+		"allowJs": false,
+		"allowSyntheticDefaultImports": true,
+		"alwaysStrict": true,
+		"declaration": true,
+		"declarationDir": "./dist/types",
+		"declarationMap": true
+	},
+	"extends": "../tsconfig"
+}

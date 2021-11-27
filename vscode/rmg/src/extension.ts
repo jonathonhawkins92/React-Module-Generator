@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
+import Command, { ExportType, EOLS } from "@file-generator/core";
+import type { Config } from "@file-generator/core";
 
-import { EOLS, ExportType } from "./enums";
-import { relationships } from "./relationship";
-import Command from "./command";
-import type { Config } from "./templates/config";
+import { relationships } from "./relationships";
 
 export function activate(context: vscode.ExtensionContext) {
 	const create = vscode.commands.registerCommand(

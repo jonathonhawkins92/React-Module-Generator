@@ -1,10 +1,7 @@
-import { EOLS, ExportType } from "../../enums";
-import type { Config } from "../config";
+import { FileBase, EOLS, ExportType } from "@file-generator/core";
+import type { Child, Config } from "@file-generator/core";
 
-import { FileBase } from "./base";
-import type { Child } from "./base";
-
-export class Style extends FileBase {
+export class Test extends FileBase {
 	constructor(
 		public readonly id: string,
 		protected readonly directory: string,
@@ -23,7 +20,7 @@ export class Style extends FileBase {
 	}
 
 	public get alias() {
-		return this.config.alias || "style";
+		return this.config.alias || "test";
 	}
 
 	public get filename() {
@@ -70,7 +67,7 @@ export class Style extends FileBase {
 		if (result.length > 0) {
 			result += this.eol;
 		}
-		result += `.root {${this.eol}}${this.eol}`;
+		result += `test("If it works!", () => {});${this.eol}`;
 		return result;
 	}
 }

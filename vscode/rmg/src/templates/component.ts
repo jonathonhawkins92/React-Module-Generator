@@ -1,8 +1,5 @@
-import { EOLS, ExportType } from "../../enums";
-import type { Config } from "../config";
-
-import { FileBase } from "./base";
-import type { Child } from "./base";
+import { FileBase, EOLS, ExportType } from "@file-generator/core";
+import type { Child, Config } from "@file-generator/core";
 
 export class Component extends FileBase {
 	constructor(

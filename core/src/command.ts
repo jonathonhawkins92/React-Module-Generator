@@ -1,10 +1,10 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 
-import type { Config } from "./templates/config";
-import { EOLS } from "./enums";
-import { templateValidator } from "./templates";
 import type { Relationships } from "./relationship";
+import type { Config } from "./template/types";
+import { templateValidator } from "./template/validator";
+import { EOLS } from "./enums";
 
 export default class Command {
 	constructor(

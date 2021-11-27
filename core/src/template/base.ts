@@ -1,5 +1,5 @@
-import { EOLS, ExportType } from "../../enums";
-import type { Config } from "../config";
+import { EOLS, ExportType } from "../enums";
+import type { Config } from "./types";
 
 import * as path from "path";
 

@@ -1,10 +1,7 @@
-import { EOLS, ExportType } from "../../enums";
-import type { Config } from "../config";
+import { FileBase, EOLS, ExportType } from "@file-generator/core";
+import type { Child, Config } from "@file-generator/core";
 
-import { FileBase } from "./base";
-import type { Child } from "./base";
-
-export class Translation extends FileBase {
+export class Barrel extends FileBase {
 	constructor(
 		public readonly id: string,
 		protected readonly directory: string,
@@ -23,7 +20,7 @@ export class Translation extends FileBase {
 	}
 
 	public get alias() {
-		return this.config.alias || "translation";
+		return this.config.alias || "barrel";
 	}
 
 	public get filename() {
@@ -51,26 +48,54 @@ export class Translation extends FileBase {
 		for (const _import of this.config.imports) {
 			result += `${_import}${this.eol}`;
 		}
+		if (result.length > 0) {
+			result += this.eol;
+		}
 		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
-						result += this.importAll(dependency);
+						result += this.exportAll(dependency.filename);
 						break;
 					case ExportType.named:
-						result += this.importNamed(dependency);
+						result += this.exportNamed(
+							dependency.name,
+							dependency.filename
+						);
+						break;
+
+					case ExportType.defaultNamed:
+						result += this.exportDefaultNamed(
+							dependency.name,
+							dependency.filename
+						);
 						break;
 					case ExportType.default:
 					default:
-						result += this.importDefault(dependency);
+						result += this.exportDefaultNamed(
+							dependency.name,
+							dependency.filename
+						);
 						break;
 				}
 			}
 		}
-		if (result.length > 0) {
-			result += this.eol;
-		}
-		result += `export const ${this.alias} = {};${this.eol}`;
 		return result;
+	}
+
+	private exportAll(filename: string) {
+		return `export * from "./${filename}";${this.eol}`;
+	}
+
+	private exportNamed(name: string, filename: string) {
+		return `export { ${name} } from "./${filename}";${this.eol}`;
+	}
+
+	private exportDefault(filename: string) {
+		return `export { default } from "./${filename}";${this.eol}`;
+	}
+
+	private exportDefaultNamed(name: string, filename: string) {
+		return `export { default as ${name} } from "./${filename}";${this.eol}`;
 	}
 }

@@ -1,18 +1,5 @@
 import { Barrel, Test, Component, Style, Translation } from "./templates";
-import type { FileBase } from "./templates";
-
-interface Node {
-	instance: FileBase | null;
-	template: typeof FileBase;
-	name: string;
-	children: string[];
-	open?: boolean;
-}
-
-export interface Relationships {
-	entrypoints: string[];
-	nodes: Record<string, Node>;
-}
+import type { Relationships } from "@file-generator/core";
 
 export const relationships: Relationships = {
 	entrypoints: ["barrel", "test"],

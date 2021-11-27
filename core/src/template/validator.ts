@@ -1,6 +1,6 @@
 import { ExportType } from "../enums";
-import type { Child } from ".";
-import type { Config } from "./config";
+import type { Child } from "./base";
+import type { Config } from "./types";
 
 enum Properties {
 	// base
