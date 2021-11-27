@@ -99,7 +99,7 @@ export class Component extends FileBase {
 			}
 			if (!includes.style && child.id === "style") {
 				includes.style = true;
-				el += ` className={${child.alias || "style"}.root}`;
+				el += ` className={${child.alias}.root}`;
 			}
 		}
 		el += " ></div>";
