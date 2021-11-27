@@ -2,22 +2,18 @@ import * as vscode from "vscode";
 import * as fs from "fs/promises";
 import * as path from "path";
 
-import * as templates from "./template";
-import { SettingIds, EOLS, ExportType } from "./enums";
-import Validator, { Template } from "./validator";
-import { mainModule } from "process";
-
-export interface CommandSettings {
-	template: templates.Settings;
-}
+import { Barrel, Test, Component, Style, Translation } from "./template";
+import type { Config, FileBase } from "./template";
+import { EOLS, ExportType } from "./enums";
+import Validator from "./validator";
 
 function validationError(name: string) {
 	vscode.window.showErrorMessage(`Template ${name}, is not valid.`);
 }
 
 interface Node {
-	instance: Template | null;
-	template: any;
+	instance: FileBase | null;
+	template: typeof FileBase;
 	name: string;
 	children: string[];
 	open?: boolean;
@@ -27,43 +23,48 @@ interface Relationships {
 	entrypoints: string[];
 	nodes: Record<string, Node>;
 }
+
 const relationships: Relationships = {
 	entrypoints: ["barrel", "test"],
 	nodes: {
 		barrel: {
 			instance: null,
-			template: templates.Barrel,
+			template: Barrel,
 			name: "barrel",
 			children: ["component"],
 		},
 		test: {
 			instance: null,
-			template: templates.Test,
+			template: Test,
 			name: "test",
 			children: ["component"],
 		},
 		component: {
 			instance: null,
-			template: templates.Component,
+			template: Component,
 			name: "component",
 			children: ["style", "translation"],
 			open: true,
 		},
 		style: {
 			instance: null,
-			template: templates.Style,
+			template: Style,
 			name: "style",
 			children: [],
 		},
 		translation: {
 			instance: null,
-			template: templates.Translation,
+			template: Translation,
 			name: "translation",
 			children: [],
 		},
 	},
 };
 
+export type CommandSettings = {
+	eol: EOLS;
+	template: Record<string, Config>;
+};
 export default class Command {
 	private settings: CommandSettings;
 	private currentUri?: vscode.Uri;
@@ -77,80 +78,77 @@ export default class Command {
 
 		const typeOfEols = config.get("global.endOfLineSequence", "lf");
 		this.settings = {
+			eol: EOLS[typeOfEols],
 			template: {
-				endOfLineSequence: EOLS[typeOfEols],
-
-				componentImports: config.get("component.imports", []),
-				componentExportType: config.get(
-					"component.export.type",
-					ExportType.all
-				),
-				componentExportExtension: config.get(
-					"component.export.extension",
-					false
-				),
-				componentAlias: config.get("component.export.alias"),
-				componentName: config.get("component.file.name"),
-				componentExtension: config.get(
-					"component.file.extension",
-					".tsx"
-				),
-
-				barrel: config.get("barrel.include", true),
-				barrelImports: config.get("barrel.imports", []),
-				barrelExportType: config.get(
-					"barrel.export.type",
-					ExportType.all
-				),
-				barrelExportExtension: config.get(
-					"barrel.export.extension",
-					false
-				),
-				barrelAlias: config.get("barrel.export.alias"),
-				barrelName: config.get("barrel.file.name"),
-				barrelExtension: config.get("barrel.file.extension", ".ts"),
-
-				style: config.get("style.include", true),
-				styleImports: config.get("style.imports", []),
-				styleExportType: config.get(
-					"style.export.type",
-					ExportType.all
-				),
-				styleExportExtension: config.get(
-					"style.export.extension",
-					false
-				),
-				styleAlias: config.get("style.export.alias"),
-				styleName: config.get("style.file.name"),
-				styleExtension: config.get(
-					"style.file.extension",
-					"module.css"
-				),
-
-				translation: config.get("translation.include", true),
-				translationImports: config.get("translation.imports", []),
-				translationExportType: config.get(
-					"translation.export.type",
-					ExportType.all
-				),
-				translationExportExtension: config.get(
-					"translation.export.extension",
-					false
-				),
-				translationAlias: config.get("translation.export.alias"),
-				translationName: config.get("translation.file.name"),
-				translationExtension: config.get(
-					"translation.file.extension",
-					"intl.ts"
-				),
-
-				test: config.get("test.include", true),
-				testImports: config.get("test.imports", []),
-				testExportType: config.get("test.export.type", ExportType.all),
-				testExportExtension: config.get("test.export.extension", false),
-				testAlias: config.get("test.export.alias"),
-				testName: config.get("test.file.name"),
-				testExtension: config.get("test.file.extension", "test.ts"),
+				component: {
+					include: true,
+					name: config.get("component.file.name"),
+					alias: config.get("component.export.alias"),
+					imports: config.get("component.imports", []),
+					extension: config.get("component.file.extension", ".tsx"),
+					exportType: config.get(
+						"component.export.type",
+						ExportType.all
+					),
+					exportExtension: config.get(
+						"component.export.extension",
+						false
+					),
+				},
+				barrel: {
+					include: config.get("barrel.include", true),
+					imports: config.get("barrel.imports", []),
+					exportType: config.get(
+						"barrel.export.type",
+						ExportType.all
+					),
+					exportExtension: config.get(
+						"barrel.export.extension",
+						false
+					),
+					alias: config.get("barrel.export.alias"),
+					name: config.get("barrel.file.name"),
+					extension: config.get("barrel.file.extension", ".ts"),
+				},
+				style: {
+					include: config.get("style.include", true),
+					imports: config.get("style.imports", []),
+					exportType: config.get("style.export.type", ExportType.all),
+					exportExtension: config.get(
+						"style.export.extension",
+						false
+					),
+					alias: config.get("style.export.alias"),
+					name: config.get("style.file.name"),
+					extension: config.get("style.file.extension", "module.css"),
+				},
+				translation: {
+					include: config.get("translation.include", true),
+					imports: config.get("translation.imports", []),
+					exportType: config.get(
+						"translation.export.type",
+						ExportType.all
+					),
+					exportExtension: config.get(
+						"translation.export.extension",
+						false
+					),
+					alias: config.get("translation.export.alias"),
+					name: config.get("translation.file.name"),
+					extension: config.get(
+						"translation.file.extension",
+						"intl.ts"
+					),
+				},
+				test: {
+					include: config.get("test.include", true),
+					imports: config.get("test.imports", []),
+					exportType: config.get("test.export.type", ExportType.all),
+					exportExtension: config.get("test.export.extension", false),
+					alias: config.get("test.export.alias"),
+					name: config.get("test.file.name"),
+					extension: config.get("test.file.extension", "test.ts"),
+				},
 			},
 		};
 
@@ -164,109 +162,80 @@ export default class Command {
 		const directory = await this.getRoot(targetDir);
 		const { name, settings } = await this.getUserSettings();
 		const moduleName = this.normalizeComponentName(name);
+		const depths = this.generateDepthMap(relationships);
+		this.generateTemplateInstances(directory, moduleName, depths, settings);
+		let openFilePath: null | string = null;
 
-		// Create module
-		const componentDepends = [];
-		let translation;
-		if (settings.translation) {
-			translation = new templates.Translation(
-				directory,
-				moduleName,
-				[],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(translation)) {
-				return validationError("translation");
-			}
-			componentDepends.push(translation);
+		const entrypoints: Record<string, true> = {};
+		for (const entrypoint of relationships.entrypoints) {
+			entrypoints[entrypoint] = true;
 		}
 
-		let style;
-		if (settings.style) {
-			style = new templates.Style(
-				directory,
-				moduleName,
-				[],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(style)) {
-				return validationError("style");
-			}
-			componentDepends.push(style);
-		}
+		// create files
+		for (const names of depths) {
+			for (const name of names) {
+				if (!settings[name] || entrypoints[name]) {
+					continue;
+				}
+				const node = relationships.nodes[name];
 
-		const component = new templates.Component(
-			directory,
-			moduleName,
-			componentDepends,
-			this.settings.template
-		);
-		if (!Validator.assertTemplate(component)) {
-			return validationError("component");
-		}
+				if (!Validator.assertTemplate(node.instance)) {
+					return validationError(node.name);
+				}
 
-		let test;
-		if (settings.test) {
-			test = new templates.Test(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(test)) {
-				return validationError("test");
+				if (node.instance === null) {
+					return validationError(node.name);
+				}
+
+				if (node.instance.directories.length > 0) {
+					await this.createDir(directory, node.instance.directories);
+				}
+				await fs.writeFile(node.instance.path, node.instance.content);
+
+				if (node.open) {
+					openFilePath = node.instance.path;
+				}
 			}
 		}
+		for (const name of relationships.entrypoints) {
+			if (!settings[name]) {
+				continue;
+			}
+			const node = relationships.nodes[name];
 
-		let barrel;
-		if (settings.barrel) {
-			barrel = new templates.Barrel(
-				directory,
-				moduleName,
-				[component],
-				this.settings.template
-			);
-			if (!Validator.assertTemplate(barrel)) {
-				return validationError("barrel");
+			if (!Validator.assertTemplate(node.instance)) {
+				return validationError(node.name);
+			}
+
+			if (node.instance === null) {
+				return validationError(node.name);
+			}
+
+			if (node.instance.directories.length > 0) {
+				await this.createDir(directory, node.instance.directories);
+			}
+
+			try {
+				const fileStats = await fs.stat(node.instance.path);
+				if (!fileStats.isFile()) {
+					throw new Error("Not a file");
+				}
+				await fs.writeFile(node.instance.path, node.instance.content, {
+					flag: "a+",
+				});
+			} catch (_) {
+				await fs.writeFile(node.instance.path, node.instance.content);
+			}
+
+			if (node.open) {
+				openFilePath = node.instance.path;
 			}
 		}
 
-		// Write module
-		if (settings.translation && translation) {
-			if (translation.directories.length > 0) {
-				await this.createDir(directory, translation.directories);
-			}
-			await fs.writeFile(translation.path, translation.content);
+		if (openFilePath === null) {
+			return;
 		}
-
-		if (settings.style && style) {
-			if (style.directories.length > 0) {
-				await this.createDir(directory, style.directories);
-			}
-			await fs.writeFile(style.path, style.content);
-		}
-
-		await fs.writeFile(component.path, component.content);
-		if (component.directories.length > 0) {
-			await this.createDir(directory, component.directories);
-		}
-
-		if (settings.test && test) {
-			if (test.directories.length > 0) {
-				await this.createDir(directory, test.directories);
-			}
-			await fs.writeFile(test.path, test.content);
-		}
-
-		if (settings.barrel && barrel) {
-			const isBarrel = await fs.stat(barrel.path);
-			if (!isBarrel.isFile()) {
-				throw new Error("Unable to find barrel.");
-			}
-			await fs.writeFile(barrel.path, barrel.content, { flag: "a+" });
-		}
-
-		const doc = await vscode.workspace.openTextDocument(component.path);
+		const doc = await vscode.workspace.openTextDocument(openFilePath);
 		vscode.window.showTextDocument(doc);
 	}
 
@@ -275,41 +244,41 @@ export default class Command {
 			targetDir = await this.getDir();
 		}
 		const root = await this.getRoot(targetDir);
-		const { name, settings } = await this.getUserSettings();
+		const { name: baseName, settings } = await this.getUserSettings();
 
-		const dirName = this.normalizeDirName(name);
+		const dirName = this.normalizeDirName(baseName);
 		const directory = path.join(root, dirName);
-		const moduleName = this.normalizeComponentName(name);
+		const moduleName = this.normalizeComponentName(baseName);
 
-		const relationshipDepths = this.generateDepthMap(relationships);
-		this.generateTemplateInstances(
-			directory,
-			moduleName,
-			relationshipDepths
-		);
+		const depths = this.generateDepthMap(relationships);
+		this.generateTemplateInstances(directory, moduleName, depths, settings);
 		let openFilePath: null | string = null;
 
 		await fs.mkdir(directory);
 
 		// create files
-		for (const entries of relationshipDepths) {
-			for (const entry of entries) {
-				const { instance, name, open } = relationships.nodes[entry];
-				if (!Validator.assertTemplate(instance)) {
-					return validationError(name);
+		for (const names of depths) {
+			for (const name of names) {
+				if (!settings[name]) {
+					continue;
+				}
+				const node = relationships.nodes[name];
+
+				if (!Validator.assertTemplate(node.instance)) {
+					return validationError(node.name);
 				}
 
-				if (instance === null) {
-					return validationError(name);
+				if (node.instance === null) {
+					return validationError(node.name);
 				}
 
-				if (instance.directories.length > 0) {
-					await this.createDir(directory, instance.directories);
+				if (node.instance.directories.length > 0) {
+					await this.createDir(directory, node.instance.directories);
 				}
-				await fs.writeFile(instance.path, instance.content);
+				await fs.writeFile(node.instance.path, node.instance.content);
 
-				if (open) {
-					openFilePath = instance.path;
+				if (node.open) {
+					openFilePath = node.instance.path;
 				}
 			}
 		}
@@ -395,14 +364,18 @@ export default class Command {
 
 	private generateTemplateInstances(
 		directory: string,
-		name: string,
-		relationshipDepths: string[][]
+		moduleName: string,
+		depths: string[][],
+		settings: Record<string, boolean>
 	) {
 		// map node relationships
-		for (let depth = relationshipDepths.length - 1; depth >= 0; depth--) {
-			const entries = relationshipDepths[depth];
-			for (const entry of entries) {
-				const node = relationships.nodes[entry];
+		for (let depth = depths.length - 1; depth >= 0; depth--) {
+			const names = depths[depth];
+			for (const name of names) {
+				if (!settings[name]) {
+					continue;
+				}
+				const node = relationships.nodes[name];
 				const children = [];
 				for (const childName of node.children) {
 					const child = relationships.nodes[childName].instance;
@@ -414,68 +387,40 @@ export default class Command {
 
 				const template = new node.template(
 					directory,
-					name,
+					moduleName,
 					children,
-					this.settings.template
+					this.settings.eol,
+					this.settings.template[node.name]
 				);
-				if (!Validator.assertTemplate(template)) {
+				if (!Validator.assertTemplate<typeof template>(template)) {
 					return validationError(template.name);
 				}
-				relationships.nodes[entry].instance = template;
+				relationships.nodes[name].instance = template;
 			}
 		}
 	}
 
 	private async getUserSettings() {
-		const settingsMap: Record<
+		const options: Record<
 			string,
 			{
 				quickPick: vscode.QuickPickItem;
 				id: string;
 			}
-		> = {
-			"Include styles file": {
+		> = {};
+		for (const key of Object.keys(relationships.nodes)) {
+			const label = `Include ${key} file`;
+			options[label] = {
 				quickPick: {
 					alwaysShow: true,
-					label: "Include styles file",
-					description:
-						"Create a style file and import it in your component.",
-					picked: this.settings.template.style,
+					label,
+					picked: this.settings.template[key].include,
 				},
-				id: SettingIds.style,
-			},
-			"Include translations file": {
-				quickPick: {
-					alwaysShow: true,
-					label: "Include translations file",
-					description:
-						"Create a translation file and import it in your component.",
-					picked: this.settings.template.translation,
-				},
-				id: SettingIds.translation,
-			},
-			"Include tests file": {
-				quickPick: {
-					alwaysShow: true,
-					label: "Include tests file",
-					description:
-						"Create a test file and import your component.",
-					picked: this.settings.template.test,
-				},
-				id: SettingIds.test,
-			},
-			"Include barrel file": {
-				quickPick: {
-					alwaysShow: true,
-					label: "Include barrel file",
-					description:
-						"Add a file to expose your modules public resources.",
-					picked: this.settings.template.barrel,
-				},
-				id: SettingIds.barrel,
-			},
-		};
-		const settingsQuickPicks = Object.values(settingsMap).map(
+				id: key,
+			};
+		}
+
+		const optionsQuickPicks = Object.values(options).map(
 			(value) => value.quickPick
 		);
 
@@ -484,14 +429,12 @@ export default class Command {
 		input.placeholder = "What's the name of your new module?";
 		input.matchOnDescription = false;
 		input.matchOnDetail = false;
-		input.items = settingsQuickPicks;
+		input.items = optionsQuickPicks;
 		input.canSelectMany = true;
-		input.selectedItems = settingsQuickPicks.filter(
-			(value) => value.picked
-		);
+		input.selectedItems = optionsQuickPicks.filter((value) => value.picked);
 
 		let name = "";
-		let selectedIds: string[] = [];
+		let settings: Record<string, boolean> = {};
 		await new Promise((resolve, reject) => {
 			let accepted = false;
 			input.onDidChangeValue((value) => {
@@ -503,11 +446,12 @@ export default class Command {
 				resolve(name);
 			});
 			input.onDidChangeSelection((selection) => {
-				selectedIds = selection.map((item) => {
+				settings = {};
+				for (const item of selection) {
 					const id = item.label;
-					const setting = settingsMap[id];
-					return setting.id;
-				});
+					const setting = options[id];
+					settings[setting.id] = true;
+				}
 			});
 			input.onDidHide(() => {
 				if (accepted) {
@@ -520,14 +464,6 @@ export default class Command {
 		if (!name || !name.trim()) {
 			throw new Error("Invalid module name");
 		}
-		const settings = {
-			[SettingIds.style]: selectedIds.includes(SettingIds.style),
-			[SettingIds.translation]: selectedIds.includes(
-				SettingIds.translation
-			),
-			[SettingIds.test]: selectedIds.includes(SettingIds.test),
-			[SettingIds.barrel]: selectedIds.includes(SettingIds.barrel),
-		};
 		return { name, settings };
 	}
 

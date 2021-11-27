@@ -1,12 +1,12 @@
 import { ExportType } from "./enums";
-import { FileBase, Settings } from "./template";
+import { FileBase, Config } from "./template";
 
 enum Properties {
 	// base
 	directory = "directory",
 	moduleName = "moduleName",
-	dependencies = "dependencies",
-	settings = "settings",
+	children = "children",
+	config = "config",
 	eol = "eol",
 	// core
 	name = "name",
@@ -24,8 +24,8 @@ interface PossibleTemplate {
 	// base
 	[Properties.directory]?: string;
 	[Properties.moduleName]?: string;
-	[Properties.dependencies]?: (string | FileBase)[];
-	[Properties.settings]?: Settings;
+	[Properties.children]?: (string | FileBase)[];
+	[Properties.config]?: Config;
 	[Properties.eol]?: string;
 	// core
 	[Properties.name]?: string;
@@ -44,7 +44,7 @@ export type Template = Required<PossibleTemplate>;
 class Validator {
 	public static instance = new Validator();
 
-	public assertTemplate(template: unknown) {
+	public assertTemplate<Template>(template: Template) {
 		return (
 			this.assertPossibleTemplate(template) &&
 			this.assertTemplateBase(template) &&
@@ -53,17 +53,27 @@ class Validator {
 	}
 
 	private isValid(template: PossibleTemplate, key: Properties, type: string) {
-		return key in template && typeof template[key] === type;
+		return (
+			template !== null &&
+			key in template &&
+			typeof template[key] === type
+		);
 	}
 
 	// TODO: improve
-	private isValidDependencies(template: PossibleTemplate, key: Properties) {
-		return key in template && Array.isArray(template[key]);
+	private isValidChildren(template: PossibleTemplate, key: Properties) {
+		return (
+			template !== null && key in template && Array.isArray(template[key])
+		);
 	}
 
 	// TODO: improve
-	private isValidSetting(template: PossibleTemplate, key: Properties) {
-		return key in template && typeof template[key] === "object";
+	private isValidConfig(template: PossibleTemplate, key: Properties) {
+		return (
+			template !== null &&
+			key in template &&
+			typeof template[key] === "object"
+		);
 	}
 
 	private assertPossibleTemplate(
@@ -80,8 +90,8 @@ class Validator {
 		return (
 			this.isValid(template, Properties.directory, "string") &&
 			this.isValid(template, Properties.moduleName, "string") &&
-			this.isValidDependencies(template, Properties.dependencies) &&
-			this.isValidSetting(template, Properties.settings) &&
+			this.isValidChildren(template, Properties.children) &&
+			this.isValidConfig(template, Properties.config) &&
 			this.isValid(template, Properties.eol, "string")
 		);
 	}
