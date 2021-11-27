@@ -13,61 +13,26 @@ export interface File {
 	get exportExtension(): boolean;
 }
 
-export interface Settings {
-	readonly endOfLineSequence: EOLS;
-
-	readonly componentName?: string;
-	readonly componentAlias?: string;
-	readonly componentImports: string[];
-	readonly componentExtension: string;
-	readonly componentExportType: ExportType;
-	readonly componentExportExtension: boolean;
-
-	readonly barrel: boolean;
-	readonly barrelName?: string;
-	readonly barrelAlias?: string;
-	readonly barrelImports: string[];
-	readonly barrelExtension: string;
-	readonly barrelExportType: ExportType;
-	readonly barrelExportExtension: boolean;
-
-	readonly style: boolean;
-	readonly styleName?: string;
-	readonly styleAlias?: string;
-	readonly styleImports: string[];
-	readonly styleExtension: string;
-	readonly styleExportType: ExportType;
-	readonly styleExportExtension: boolean;
-
-	readonly translation: boolean;
-	readonly translationName?: string;
-	readonly translationAlias?: string;
-	readonly translationImports: string[];
-	readonly translationExtension: string;
-	readonly translationExportType: ExportType;
-	readonly translationExportExtension: boolean;
-
-	readonly test: boolean;
-	readonly testName?: string;
-	readonly testAlias?: string;
-	readonly testImports: string[];
-	readonly testExtension: string;
-	readonly testExportType: ExportType;
-	readonly testExportExtension: boolean;
+export interface Config {
+	readonly include: boolean;
+	readonly name?: string;
+	readonly alias?: string;
+	readonly imports: string[];
+	readonly extension: string;
+	readonly exportType: ExportType;
+	readonly exportExtension: boolean;
 }
 
-export type Dependency = string | FileBase;
+export type Child = string | FileBase;
 
 export class FileBase implements File {
-	protected readonly eol: EOLS;
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
-	) {
-		this.eol = settings.endOfLineSequence;
-	}
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
+	) {}
 	public get name() {
 		return "";
 	}
@@ -189,26 +154,25 @@ export class Barrel extends FileBase {
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
 	) {
-		super(directory, moduleName, dependencies, settings);
+		super(directory, moduleName, children, eol, config);
 	}
 
 	public get name() {
-		return this.settings.barrelName
-			? this.normalizeName(
-					this.templateValues(this.settings.barrelName.trim())
-			  )
+		return this.config.name
+			? this.normalizeName(this.templateValues(this.config.name.trim()))
 			: this.moduleName;
 	}
 
 	public get alias() {
-		return this.settings.barrelAlias || "barrel";
+		return this.config.alias || "barrel";
 	}
 
 	public get filename() {
-		return this.generateFilename(this.settings.barrelExportExtension);
+		return this.generateFilename(this.config.exportExtension);
 	}
 
 	public get path() {
@@ -216,26 +180,26 @@ export class Barrel extends FileBase {
 	}
 
 	public get extension() {
-		return this.normalizeExtension(this.settings.barrelExtension);
+		return this.normalizeExtension(this.config.extension);
 	}
 
 	public get exportType() {
-		return this.settings.barrelExportType;
+		return this.config.exportType;
 	}
 
 	public get exportExtension() {
-		return this.settings.barrelExportExtension ?? false;
+		return this.config.exportExtension ?? false;
 	}
 
 	public get content() {
 		let result = "";
-		for (const barrelImport of this.settings.barrelImports) {
-			result += `${barrelImport}${this.eol}`;
+		for (const _import of this.config.imports) {
+			result += `${_import}${this.eol}`;
 		}
 		if (result.length > 0) {
 			result += this.eol;
 		}
-		for (const dependency of this.dependencies) {
+		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
@@ -288,26 +252,25 @@ export class Style extends FileBase {
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
 	) {
-		super(directory, moduleName, dependencies, settings);
+		super(directory, moduleName, children, eol, config);
 	}
 
 	public get name() {
-		return this.settings.styleName
-			? this.normalizeName(
-					this.templateValues(this.settings.styleName.trim())
-			  )
+		return this.config.name
+			? this.normalizeName(this.templateValues(this.config.name.trim()))
 			: this.moduleName;
 	}
 
 	public get alias() {
-		return this.settings.styleAlias || "style";
+		return this.config.alias || "style";
 	}
 
 	public get filename() {
-		return this.generateFilename(this.settings.styleExportExtension);
+		return this.generateFilename(this.config.exportExtension);
 	}
 
 	public get path() {
@@ -315,23 +278,23 @@ export class Style extends FileBase {
 	}
 
 	public get extension() {
-		return this.normalizeExtension(this.settings.styleExtension);
+		return this.normalizeExtension(this.config.extension);
 	}
 
 	public get exportType() {
-		return this.settings.styleExportType;
+		return this.config.exportType;
 	}
 
 	public get exportExtension() {
-		return this.settings.styleExportExtension ?? false;
+		return this.config.exportExtension ?? false;
 	}
 
 	public get content() {
 		let result = "";
-		for (const styleImport of this.settings.styleImports) {
-			result += `${styleImport}${this.eol}`;
+		for (const _import of this.config.imports) {
+			result += `${_import}${this.eol}`;
 		}
-		for (const dependency of this.dependencies) {
+		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
@@ -359,26 +322,24 @@ export class Translation extends FileBase {
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
 	) {
-		super(directory, moduleName, dependencies, settings);
+		super(directory, moduleName, children, eol, config);
 	}
-
 	public get name() {
-		return this.settings.translationName
-			? this.normalizeName(
-					this.templateValues(this.settings.translationName.trim())
-			  )
+		return this.config.name
+			? this.normalizeName(this.templateValues(this.config.name.trim()))
 			: this.moduleName;
 	}
 
 	public get alias() {
-		return this.settings.translationAlias || "translation";
+		return this.config.alias || "translation";
 	}
 
 	public get filename() {
-		return this.generateFilename(this.settings.translationExportExtension);
+		return this.generateFilename(this.config.exportExtension);
 	}
 
 	public get path() {
@@ -386,23 +347,23 @@ export class Translation extends FileBase {
 	}
 
 	public get extension() {
-		return this.normalizeExtension(this.settings.translationExtension);
+		return this.normalizeExtension(this.config.extension);
 	}
 
 	public get exportType() {
-		return this.settings.translationExportType;
+		return this.config.exportType;
 	}
 
 	public get exportExtension() {
-		return this.settings.translationExportExtension ?? false;
+		return this.config.exportExtension ?? false;
 	}
 
 	public get content() {
 		let result = "";
-		for (const translationImport of this.settings.translationImports) {
-			result += `${translationImport}${this.eol}`;
+		for (const _import of this.config.imports) {
+			result += `${_import}${this.eol}`;
 		}
-		for (const dependency of this.dependencies) {
+		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
@@ -430,26 +391,24 @@ export class Test extends FileBase {
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
 	) {
-		super(directory, moduleName, dependencies, settings);
+		super(directory, moduleName, children, eol, config);
 	}
-
 	public get name() {
-		return this.settings.testName
-			? this.normalizeName(
-					this.templateValues(this.settings.testName.trim())
-			  )
+		return this.config.name
+			? this.normalizeName(this.templateValues(this.config.name.trim()))
 			: this.moduleName;
 	}
 
 	public get alias() {
-		return this.settings.testAlias || "test";
+		return this.config.alias || "test";
 	}
 
 	public get filename() {
-		return this.generateFilename(this.settings.testExportExtension);
+		return this.generateFilename(this.config.exportExtension);
 	}
 
 	public get path() {
@@ -457,23 +416,23 @@ export class Test extends FileBase {
 	}
 
 	public get extension() {
-		return this.normalizeExtension(this.settings.testExtension);
+		return this.normalizeExtension(this.config.extension);
 	}
 
 	public get exportType() {
-		return this.settings.testExportType;
+		return this.config.exportType;
 	}
 
 	public get exportExtension() {
-		return this.settings.testExportExtension ?? false;
+		return this.config.exportExtension ?? false;
 	}
 
 	public get content() {
 		let result = "";
-		for (const testImport of this.settings.testImports) {
-			result += `${testImport}${this.eol}`;
+		for (const _import of this.config.imports) {
+			result += `${_import}${this.eol}`;
 		}
-		for (const dependency of this.dependencies) {
+		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
@@ -501,26 +460,25 @@ export class Component extends FileBase {
 	constructor(
 		protected readonly directory: string,
 		protected readonly moduleName: string,
-		protected readonly dependencies: Dependency[],
-		protected readonly settings: Settings
+		protected readonly children: Child[],
+		protected readonly eol: EOLS,
+		public readonly config: Config
 	) {
-		super(directory, moduleName, dependencies, settings);
+		super(directory, moduleName, children, eol, config);
 	}
 
 	public get name() {
-		return this.settings.componentName
-			? this.normalizeName(
-					this.templateValues(this.settings.componentName.trim())
-			  )
+		return this.config.name
+			? this.normalizeName(this.templateValues(this.config.name.trim()))
 			: this.moduleName;
 	}
 
 	public get alias() {
-		return this.settings.componentAlias || "component";
+		return this.config.alias || "component";
 	}
 
 	public get filename() {
-		return this.generateFilename(this.settings.componentExportExtension);
+		return this.generateFilename(this.config.exportExtension);
 	}
 
 	public get path() {
@@ -528,23 +486,23 @@ export class Component extends FileBase {
 	}
 
 	public get extension() {
-		return this.normalizeExtension(this.settings.componentExtension);
+		return this.normalizeExtension(this.config.extension);
 	}
 
 	public get exportType() {
-		return this.settings.componentExportType;
+		return this.config.exportType;
 	}
 
 	public get exportExtension() {
-		return this.settings.componentExportExtension ?? false;
+		return this.config.exportExtension ?? false;
 	}
 
 	public get content() {
 		let result = "";
-		for (const componentImport of this.settings.componentImports) {
-			result += `${componentImport}${this.eol}`;
+		for (const _import of this.config.imports) {
+			result += `${_import}${this.eol}`;
 		}
-		for (const dependency of this.dependencies) {
+		for (const dependency of this.children) {
 			if (dependency instanceof FileBase) {
 				switch (dependency.exportType) {
 					case ExportType.all:
@@ -578,12 +536,13 @@ export class Component extends FileBase {
 
 	private createDiv() {
 		let el = "<div";
-		if (this.settings.test) {
-			el += ` data-testId="${this.moduleName}"`;
-		}
-		if (this.settings.style) {
-			el += ` className={${this.settings.styleAlias || "style"}.root}`;
-		}
+		// TODO: implement via children
+		// if (this.settings.test) {
+		// 	el += ` data-testId="${this.moduleName}"`;
+		// }
+		// if (this.settings.style) {
+		// 	el += ` className={${this.settings.styleAlias || "style"}.root}`;
+		// }
 		el += " ></div>";
 		return el;
 	}

@@ -4,13 +4,6 @@ export enum EOLS {
 	cr = "\r",
 }
 
-export enum SettingIds {
-	style = "style",
-	translation = "translation",
-	test = "test",
-	barrel = "barrel",
-}
-
 export enum ExportType {
 	all = "all",
 	named = "named",
