@@ -1,5 +1,6 @@
-import { ExportType } from "./enums";
-import { FileBase, Config } from "./template";
+import { ExportType } from "../enums";
+import type { Child } from ".";
+import type { Config } from "./config";
 
 enum Properties {
 	// base
@@ -24,7 +25,7 @@ interface PossibleTemplate {
 	// base
 	[Properties.directory]?: string;
 	[Properties.moduleName]?: string;
-	[Properties.children]?: (string | FileBase)[];
+	[Properties.children]?: Child[];
 	[Properties.config]?: Config;
 	[Properties.eol]?: string;
 	// core
@@ -41,10 +42,10 @@ interface PossibleTemplate {
 
 export type Template = Required<PossibleTemplate>;
 
-class Validator {
-	public static instance = new Validator();
+class TemplateValidator {
+	public static instance = new TemplateValidator();
 
-	public assertTemplate<Template>(template: Template) {
+	public assert<Template>(template: Template) {
 		return (
 			this.assertPossibleTemplate(template) &&
 			this.assertTemplateBase(template) &&
@@ -116,4 +117,4 @@ class Validator {
 	}
 }
 
-export default Validator.instance;
+export const templateValidator = TemplateValidator.instance;
