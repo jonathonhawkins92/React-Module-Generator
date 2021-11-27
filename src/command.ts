@@ -3,7 +3,7 @@ import * as path from "path";
 
 import type { Config } from "./templates/config";
 import { EOLS } from "./enums";
-import { validator } from "./templates";
+import { templateValidator } from "./templates";
 import type { Relationships } from "./relationship";
 
 export default class Command {
@@ -45,7 +45,7 @@ export default class Command {
 				}
 				const node = this.relationships.nodes[name];
 
-				if (!validator.assertTemplate(node.instance)) {
+				if (!templateValidator.assert(node.instance)) {
 					return this.validationError(node.name);
 				}
 
@@ -69,7 +69,7 @@ export default class Command {
 			}
 			const node = this.relationships.nodes[name];
 
-			if (!validator.assertTemplate(node.instance)) {
+			if (!templateValidator.assert(node.instance)) {
 				return this.validationError(node.name);
 			}
 
@@ -131,7 +131,7 @@ export default class Command {
 				}
 				const node = this.relationships.nodes[name];
 
-				if (!validator.assertTemplate(node.instance)) {
+				if (!templateValidator.assert(node.instance)) {
 					return this.validationError(node.name);
 				}
 
@@ -274,7 +274,7 @@ export default class Command {
 					this.eol,
 					this.templateConfig[node.name]
 				);
-				if (!validator.assertTemplate<typeof template>(template)) {
+				if (!templateValidator.assert<typeof template>(template)) {
 					return this.validationError(template.name);
 				}
 				this.relationships.nodes[name].instance = template;
