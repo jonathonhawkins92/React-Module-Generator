@@ -1,5 +1,13 @@
 # Change Log
 
+### 0.2.2
+
+-   Adding relationship mapping for later use with custom templates.
+
+### 0.2.1
+
+-   Adding template validation for later use with custom templates.
+
 ### 0.2.0
 
 -   Large refactor of both the commands and the templates ready for future extensions.
