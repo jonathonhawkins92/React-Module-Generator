@@ -19,6 +19,7 @@ export type Child = string | FileBase;
 
 export class FileBase implements File {
 	constructor(
+		public readonly id: string,
 		protected readonly directory: string,
 		protected readonly moduleName: string,
 		protected readonly children: Child[],

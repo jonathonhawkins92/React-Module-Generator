@@ -6,13 +6,14 @@ import type { Child } from "./base";
 
 export class Component extends FileBase {
 	constructor(
+		public readonly id: string,
 		protected readonly directory: string,
 		protected readonly moduleName: string,
 		protected readonly children: Child[],
 		protected readonly eol: EOLS,
 		public readonly config: Config
 	) {
-		super(directory, moduleName, children, eol, config);
+		super(id, directory, moduleName, children, eol, config);
 	}
 
 	public get name() {
@@ -84,13 +85,23 @@ export class Component extends FileBase {
 
 	private createDiv() {
 		let el = "<div";
-		// TODO: implement via children
-		// if (this.settings.test) {
-		// 	el += ` data-testId="${this.moduleName}"`;
-		// }
-		// if (this.settings.style) {
-		// 	el += ` className={${this.settings.styleAlias || "style"}.root}`;
-		// }
+		const includes = {
+			test: false,
+			style: false,
+		};
+		for (const child of this.children) {
+			if (typeof child === "string") {
+				continue;
+			}
+			if (!includes.test && child.id === "test") {
+				includes.test = true;
+				el += ` data-testId="${this.moduleName}"`;
+			}
+			if (!includes.style && child.id === "style") {
+				includes.style = true;
+				el += ` className={${child.alias || "style"}.root}`;
+			}
+		}
 		el += " ></div>";
 		return el;
 	}

@@ -268,6 +268,7 @@ export default class Command {
 				}
 
 				const template = new node.template(
+					node.name,
 					directory,
 					moduleName,
 					children,

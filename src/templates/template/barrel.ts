@@ -6,13 +6,14 @@ import type { Child } from "./base";
 
 export class Barrel extends FileBase {
 	constructor(
+		public readonly id: string,
 		protected readonly directory: string,
 		protected readonly moduleName: string,
 		protected readonly children: Child[],
 		protected readonly eol: EOLS,
 		public readonly config: Config
 	) {
-		super(directory, moduleName, children, eol, config);
+		super(id, directory, moduleName, children, eol, config);
 	}
 
 	public get name() {
