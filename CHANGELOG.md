@@ -1,12 +1,20 @@
 # Change Log
 
-### 0.2.2
+### 0.2.4
+
+-   Abstracting VS Code specific code and generally tidying up shop.
+
+### 0.2.3
 
 -   Adding relationship mapping for later use with custom templates.
 
-### 0.2.1
+### 0.2.2
 
 -   Adding template validation for later use with custom templates.
+
+### 0.2.1
+
+-   Forgot to bump the version
 
 ### 0.2.0
 
