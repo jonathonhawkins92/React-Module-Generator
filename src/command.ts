@@ -270,6 +270,77 @@ export default class Command {
 		vscode.window.showTextDocument(doc);
 	}
 
+	public async create(targetDir?: string) {
+		if (!targetDir) {
+			targetDir = await this.getDir();
+		}
+		const root = await this.getRoot(targetDir);
+		const { name, settings } = await this.getUserSettings();
+
+		const dirName = this.normalizeDirName(name);
+		const directory = path.join(root, dirName);
+		const moduleName = this.normalizeComponentName(name);
+
+		const relationshipDepths = this.generateDepthMap(relationships);
+		this.generateTemplateInstances(
+			directory,
+			moduleName,
+			relationshipDepths
+		);
+		let openFilePath: null | string = null;
+
+		await fs.mkdir(directory);
+
+		// create files
+		for (const entries of relationshipDepths) {
+			for (const entry of entries) {
+				const { instance, name, open } = relationships.nodes[entry];
+				if (!Validator.assertTemplate(instance)) {
+					return validationError(name);
+				}
+
+				if (instance === null) {
+					return validationError(name);
+				}
+
+				if (instance.directories.length > 0) {
+					await this.createDir(directory, instance.directories);
+				}
+				await fs.writeFile(instance.path, instance.content);
+
+				if (open) {
+					openFilePath = instance.path;
+				}
+			}
+		}
+
+		if (openFilePath === null) {
+			return;
+		}
+		const doc = await vscode.workspace.openTextDocument(openFilePath);
+		vscode.window.showTextDocument(doc);
+	}
+
+	public async explorerCreate(filePath: string) {
+		const normalizedFilePath = this.tidyDir(filePath);
+		const stats = await fs.lstat(normalizedFilePath);
+		if (stats.isDirectory()) {
+			this.create(normalizedFilePath);
+		} else {
+			this.create(path.dirname(normalizedFilePath));
+		}
+	}
+
+	public async explorerAdd(filePath: string) {
+		const normalizedFilePath = this.tidyDir(filePath);
+		const stats = await fs.lstat(normalizedFilePath);
+		if (stats.isDirectory()) {
+			this.add(normalizedFilePath);
+		} else {
+			this.add(path.dirname(normalizedFilePath));
+		}
+	}
+
 	private generateDepthMap(relationships: Relationships) {
 		const MAX_DEPTH = 99;
 		const lookup: Record<string, number> = {};
@@ -322,21 +393,11 @@ export default class Command {
 		return result;
 	}
 
-	public async create(targetDir?: string) {
-		if (!targetDir) {
-			targetDir = await this.getDir();
-		}
-		const root = await this.getRoot(targetDir);
-		const { name, settings } = await this.getUserSettings();
-
-		const dirName = this.normalizeDirName(name);
-		const directory = path.join(root, dirName);
-		const moduleName = this.normalizeComponentName(name);
-
-		const relationshipDepths = this.generateDepthMap(relationships);
-		let openFilePath: null | string = null;
-
-		// max depth down
+	private generateTemplateInstances(
+		directory: string,
+		name: string,
+		relationshipDepths: string[][]
+	) {
 		// map node relationships
 		for (let depth = relationshipDepths.length - 1; depth >= 0; depth--) {
 			const entries = relationshipDepths[depth];
@@ -353,7 +414,7 @@ export default class Command {
 
 				const template = new node.template(
 					directory,
-					moduleName,
+					name,
 					children,
 					this.settings.template
 				);
@@ -362,58 +423,6 @@ export default class Command {
 				}
 				relationships.nodes[entry].instance = template;
 			}
-		}
-
-		await fs.mkdir(directory);
-
-		// 0 up
-		// create files
-		for (const entries of relationshipDepths) {
-			for (const entry of entries) {
-				const { instance, name, open } = relationships.nodes[entry];
-				if (!Validator.assertTemplate(instance)) {
-					return validationError(name);
-				}
-
-				if (instance === null) {
-					return validationError(name);
-				}
-
-				if (instance.directories.length > 0) {
-					await this.createDir(directory, instance.directories);
-				}
-				await fs.writeFile(instance.path, instance.content);
-
-				if (open) {
-					openFilePath = instance.path;
-				}
-			}
-		}
-
-		if (openFilePath === null) {
-			return;
-		}
-		const doc = await vscode.workspace.openTextDocument(openFilePath);
-		vscode.window.showTextDocument(doc);
-	}
-
-	public async explorerCreate(filePath: string) {
-		const normalizedFilePath = this.tidyDir(filePath);
-		const stats = await fs.lstat(normalizedFilePath);
-		if (stats.isDirectory()) {
-			this.create(normalizedFilePath);
-		} else {
-			this.create(path.dirname(normalizedFilePath));
-		}
-	}
-
-	public async explorerAdd(filePath: string) {
-		const normalizedFilePath = this.tidyDir(filePath);
-		const stats = await fs.lstat(normalizedFilePath);
-		if (stats.isDirectory()) {
-			this.add(normalizedFilePath);
-		} else {
-			this.add(path.dirname(normalizedFilePath));
 		}
 	}
 
